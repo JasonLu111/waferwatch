@@ -1,0 +1,11 @@
+{
+  "original_rows": 3,
+  "original_columns": 4,
+  "cleaned_rows": 3,
+  "cleaned_columns": 4,
+  "removed_duplicate_rows": 0,
+  "dropped_high_missing_columns": [],
+  "median_imputed_numeric_columns": [],
+  "remaining_missing_values": 0,
+  "high_missing_threshold": 0.6
+}
