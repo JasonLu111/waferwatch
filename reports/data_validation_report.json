@@ -1,0 +1,22 @@
+{
+  "n_rows": 5,
+  "n_columns": 4,
+  "duplicate_rows": 1,
+  "total_missing_values": 3,
+  "missing_values_by_column": {
+    "sensor_001": 2,
+    "sensor_002": 1
+  },
+  "dtypes": {
+    "lot_id": "object",
+    "sensor_001": "float64",
+    "sensor_002": "float64",
+    "pass_fail_label": "int64"
+  },
+  "missing_expected_columns": [],
+  "unexpected_columns": [],
+  "label_distribution": {
+    "0": 3,
+    "1": 2
+  }
+}
