@@ -1,0 +1,21 @@
+{
+  "input_rows": 3,
+  "input_columns": 4,
+  "sensor_columns_found": 2,
+  "sensor_columns": [
+    "sensor_001",
+    "sensor_002"
+  ],
+  "output_rows": 3,
+  "output_columns": 8,
+  "created_features": [
+    "sensor_mean",
+    "sensor_std",
+    "sensor_min",
+    "sensor_max",
+    "sensor_missing_count",
+    "sensor_missing_ratio"
+  ],
+  "id_column_used": "lot_id",
+  "label_column_used": "pass_fail_label"
+}
