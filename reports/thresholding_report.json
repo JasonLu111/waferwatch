@@ -1,0 +1,98 @@
+{
+  "model_file": "D:\\waferwatch\\models\\logistic_regression_baseline.joblib",
+  "feature_table_file": "D:\\waferwatch\\data\\processed\\demo_training_feature_table.csv",
+  "n_test_rows": 18,
+  "cost_assumptions": {
+    "cost_true_positive": 1.0,
+    "cost_false_positive": 3.0,
+    "cost_false_negative": 20.0,
+    "cost_true_negative": 0.0,
+    "cost_review_for_simple_rule": 1.0
+  },
+  "default_threshold": {
+    "threshold": 0.5,
+    "metrics": {
+      "accuracy": 0.8333333333333334,
+      "precision": 0.6,
+      "recall": 0.75,
+      "f1": 0.6666666666666666,
+      "balanced_accuracy": 0.8035714285714286,
+      "matthews_corrcoef": 0.5635445125120265,
+      "roc_auc": 0.9107142857142858,
+      "pr_auc": 0.7333333333333333,
+      "precision_at_k": 0.4,
+      "recall_at_k": 1.0,
+      "top_k": 10,
+      "false_alarms_per_100_lots": 11.11111111111111,
+      "confusion_matrix": {
+        "true_negative": 12,
+        "false_positive": 2,
+        "false_negative": 1,
+        "true_positive": 3
+      }
+    },
+    "cost": {
+      "counts": {
+        "true_positive": 3,
+        "false_positive": 2,
+        "false_negative": 1,
+        "true_negative": 12
+      },
+      "total_cost": 29.0,
+      "cost_per_100_lots": 161.11111111111111,
+      "cost_assumptions": {
+        "cost_true_positive": 1.0,
+        "cost_false_positive": 3.0,
+        "cost_false_negative": 20.0,
+        "cost_true_negative": 0.0
+      }
+    }
+  },
+  "simple_cost_sensitive_threshold": {
+    "threshold": 0.05,
+    "metrics": {
+      "accuracy": 0.3888888888888889,
+      "precision": 0.26666666666666666,
+      "recall": 1.0,
+      "f1": 0.42105263157894735,
+      "balanced_accuracy": 0.6071428571428571,
+      "matthews_corrcoef": 0.23904572186687875,
+      "roc_auc": 0.9107142857142858,
+      "pr_auc": 0.7333333333333333,
+      "precision_at_k": 0.4,
+      "recall_at_k": 1.0,
+      "top_k": 10,
+      "false_alarms_per_100_lots": 61.111111111111114,
+      "confusion_matrix": {
+        "true_negative": 3,
+        "false_positive": 11,
+        "false_negative": 0,
+        "true_positive": 4
+      }
+    },
+    "cost": {
+      "counts": {
+        "true_positive": 4,
+        "false_positive": 11,
+        "false_negative": 0,
+        "true_negative": 3
+      },
+      "total_cost": 37.0,
+      "cost_per_100_lots": 205.55555555555554,
+      "cost_assumptions": {
+        "cost_true_positive": 1.0,
+        "cost_false_positive": 3.0,
+        "cost_false_negative": 20.0,
+        "cost_true_negative": 0.0
+      }
+    },
+    "decision_rule": "Escalate if p_fail * cost_false_negative > cost_review."
+  },
+  "best_threshold_by_realized_cost": {
+    "threshold": 0.42,
+    "total_cost": 10.0,
+    "cost_per_100_lots": 55.55555555555556
+  },
+  "escalation_list_file": "D:\\waferwatch\\data\\processed\\demo_escalation_list.csv",
+  "top_k": 10
+}
