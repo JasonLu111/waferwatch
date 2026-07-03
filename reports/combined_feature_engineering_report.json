@@ -1,0 +1,39 @@
+{
+  "feature_table_type": "combined_sensor_aggregate_plus_spc",
+  "input_rows": 80,
+  "input_columns": 8,
+  "sensor_columns_found": 5,
+  "sensor_columns": [
+    "sensor_001",
+    "sensor_002",
+    "sensor_003",
+    "sensor_004",
+    "sensor_005"
+  ],
+  "output_rows": 80,
+  "output_columns": 14,
+  "created_aggregate_features": [
+    "sensor_mean",
+    "sensor_std",
+    "sensor_min",
+    "sensor_max",
+    "sensor_missing_count",
+    "sensor_missing_ratio"
+  ],
+  "created_spc_features": [
+    "spc_violation_count",
+    "spc_violation_ratio",
+    "spc_max_abs_zscore",
+    "spc_any_violation",
+    "spc_top_violating_sensor"
+  ],
+  "id_column_used": "lot_id",
+  "timestamp_column_used": "timestamp",
+  "label_column_used": "pass_fail_label",
+  "spc_summary": {
+    "reference_rows_used_for_limits": 64,
+    "lots_with_any_spc_violation": 16,
+    "spc_violation_rate": 0.2,
+    "sigma_width": 3.0
+  }
+}

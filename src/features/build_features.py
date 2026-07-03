@@ -1,18 +1,15 @@
 """
 Feature engineering utilities for WaferWatch.
 
-This module converts cleaned sensor data into a model-ready feature table.
+This module converts cleaned sensor data into model-ready feature tables.
 
-At this early stage, we build simple and interpretable features:
-- sensor mean
-- sensor standard deviation
-- sensor minimum
-- sensor maximum
-- sensor missing count
-- sensor missing ratio
+It supports:
+- sensor aggregate features
+- SPC features
+- combined ML feature tables
 
-These features will later support baseline modeling, anomaly detection,
-SPC features, and lot-level explanations.
+The combined feature table will later be used for model comparison,
+cost-sensitive thresholding, explainability, and monitoring.
 """
 
 from __future__ import annotations
@@ -23,6 +20,7 @@ from typing import Any
 
 import pandas as pd
 
+from src.features.spc_features import build_spc_feature_table
 from src.utils.config import PROCESSED_DATA_DIR, REPORTS_DIR, ensure_directories_exist
 from src.utils.logger import get_logger
 
@@ -99,7 +97,7 @@ def build_feature_table(
     label_column: str = "pass_fail_label",
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """
-    Build a model-ready feature table.
+    Build a model-ready feature table using sensor aggregate features only.
 
     Parameters
     ----------
@@ -119,7 +117,7 @@ def build_feature_table(
     if not isinstance(df, pd.DataFrame):
         raise TypeError("Input must be a pandas DataFrame.")
 
-    logger.info("Starting feature engineering.")
+    logger.info("Starting basic feature engineering.")
 
     sensor_columns = find_sensor_columns(df)
 
@@ -135,6 +133,7 @@ def build_feature_table(
         feature_df[label_column] = df[label_column]
 
     report: dict[str, Any] = {
+        "feature_table_type": "sensor_aggregate_only",
         "input_rows": int(df.shape[0]),
         "input_columns": int(df.shape[1]),
         "sensor_columns_found": len(sensor_columns),
@@ -153,9 +152,115 @@ def build_feature_table(
         "label_column_used": label_column if label_column in df.columns else None,
     }
 
-    logger.info("Feature engineering completed.")
+    logger.info("Basic feature engineering completed.")
 
     return feature_df, report
+
+
+def build_combined_feature_table(
+    df: pd.DataFrame,
+    id_column: str = "lot_id",
+    timestamp_column: str = "timestamp",
+    label_column: str = "pass_fail_label",
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """
+    Build a combined feature table with sensor aggregate features and SPC features.
+
+    The output keeps:
+    - lot_id
+    - optional timestamp
+    - sensor aggregate features
+    - SPC features
+    - label column if available
+    """
+
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("Input must be a pandas DataFrame.")
+
+    logger.info("Starting combined feature engineering.")
+
+    sensor_columns = find_sensor_columns(df)
+
+    aggregate_df = build_sensor_aggregate_features(
+        df=df,
+        sensor_columns=sensor_columns,
+    )
+
+    spc_df, spc_report = build_spc_feature_table(
+        df=df,
+        id_column=id_column,
+        timestamp_column=timestamp_column,
+        label_column=label_column,
+    )
+
+    combined_df = pd.DataFrame(index=df.index)
+
+    if id_column in df.columns:
+        combined_df[id_column] = df[id_column]
+
+    if timestamp_column in df.columns:
+        combined_df[timestamp_column] = df[timestamp_column]
+
+    combined_df = pd.concat(
+        [
+            combined_df,
+            aggregate_df,
+            spc_df.drop(
+                columns=[
+                    column
+                    for column in [id_column, timestamp_column, label_column]
+                    if column in spc_df.columns
+                ],
+                errors="ignore",
+            ),
+        ],
+        axis=1,
+    )
+
+    if label_column in df.columns:
+        combined_df[label_column] = df[label_column]
+
+    created_aggregate_features = [
+        "sensor_mean",
+        "sensor_std",
+        "sensor_min",
+        "sensor_max",
+        "sensor_missing_count",
+        "sensor_missing_ratio",
+    ]
+
+    created_spc_features = [
+        "spc_violation_count",
+        "spc_violation_ratio",
+        "spc_max_abs_zscore",
+        "spc_any_violation",
+        "spc_top_violating_sensor",
+    ]
+
+    report: dict[str, Any] = {
+        "feature_table_type": "combined_sensor_aggregate_plus_spc",
+        "input_rows": int(df.shape[0]),
+        "input_columns": int(df.shape[1]),
+        "sensor_columns_found": len(sensor_columns),
+        "sensor_columns": sensor_columns,
+        "output_rows": int(combined_df.shape[0]),
+        "output_columns": int(combined_df.shape[1]),
+        "created_aggregate_features": created_aggregate_features,
+        "created_spc_features": created_spc_features,
+        "id_column_used": id_column if id_column in df.columns else None,
+        "timestamp_column_used": timestamp_column if timestamp_column in df.columns else None,
+        "label_column_used": label_column if label_column in df.columns else None,
+        "spc_summary": {
+            "reference_rows_used_for_limits": spc_report["reference_rows_used_for_limits"],
+            "lots_with_any_spc_violation": spc_report["lots_with_any_spc_violation"],
+            "spc_violation_rate": spc_report["spc_violation_rate"],
+            "sigma_width": spc_report["sigma_width"],
+        },
+    }
+
+    logger.info("Combined feature engineering completed.")
+
+    return combined_df, report
 
 
 def build_features_from_csv(
@@ -167,27 +272,7 @@ def build_features_from_csv(
     label_column: str = "pass_fail_label",
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """
-    Load a processed CSV, build features, and save the feature table.
-
-    Parameters
-    ----------
-    input_file_name:
-        Input CSV file under data/processed/.
-    output_file_name:
-        Output feature CSV file under data/processed/.
-    input_dir:
-        Input directory.
-    output_dir:
-        Output directory.
-    id_column:
-        Lot identifier column.
-    label_column:
-        Target label column.
-
-    Returns
-    -------
-    tuple[pandas.DataFrame, dict]
-        Feature table and report.
+    Load a processed CSV, build basic sensor aggregate features, and save the table.
     """
 
     ensure_directories_exist()
@@ -214,9 +299,52 @@ def build_features_from_csv(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     feature_df.to_csv(output_path, index=False)
 
-    logger.info("Saved feature table to: %s", output_path)
+    logger.info("Saved basic feature table to: %s", output_path)
 
     return feature_df, report
+
+
+def build_combined_features_from_csv(
+    input_file_name: str,
+    output_file_name: str,
+    input_dir: str | Path = PROCESSED_DATA_DIR,
+    output_dir: str | Path = PROCESSED_DATA_DIR,
+    id_column: str = "lot_id",
+    timestamp_column: str = "timestamp",
+    label_column: str = "pass_fail_label",
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """
+    Load a processed sensor CSV, build combined features, and save the table.
+    """
+
+    ensure_directories_exist()
+
+    input_path = Path(input_dir) / input_file_name
+    output_path = Path(output_dir) / output_file_name
+
+    if not input_path.exists():
+        raise FileNotFoundError(
+            f"Processed sensor CSV not found: {input_path}. "
+            "Please run the SPC demo or cleaning step first."
+        )
+
+    logger.info("Loading processed sensor CSV from: %s", input_path)
+
+    df = pd.read_csv(input_path)
+
+    combined_df, report = build_combined_feature_table(
+        df=df,
+        id_column=id_column,
+        timestamp_column=timestamp_column,
+        label_column=label_column,
+    )
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    combined_df.to_csv(output_path, index=False)
+
+    logger.info("Saved combined feature table to: %s", output_path)
+
+    return combined_df, report
 
 
 def save_feature_report(
@@ -245,18 +373,27 @@ def save_feature_report(
 
 def _demo() -> None:
     """
-    Run a small feature engineering demo using the processed demo dataset.
+    Run a combined feature engineering demo using the SPC demo sensor dataset.
+
+    This requires:
+    data/processed/demo_spc_sensor_data_processed.csv
+
+    If it does not exist, run:
+    python -m src.features.spc_features
     """
 
-    feature_df, report = build_features_from_csv(
-        input_file_name="demo_sensor_data_processed.csv",
-        output_file_name="demo_feature_table.csv",
+    combined_df, report = build_combined_features_from_csv(
+        input_file_name="demo_spc_sensor_data_processed.csv",
+        output_file_name="demo_combined_feature_table.csv",
     )
 
-    print(feature_df)
+    print(combined_df.head(15))
     print(json.dumps(report, indent=2, ensure_ascii=False))
 
-    save_feature_report(report)
+    save_feature_report(
+        report,
+        output_path=REPORTS_DIR / "combined_feature_engineering_report.json",
+    )
 
 
 if __name__ == "__main__":
