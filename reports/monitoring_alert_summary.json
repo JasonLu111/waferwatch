@@ -1,0 +1,83 @@
+{
+  "alert_level": "critical",
+  "requires_engineer_review": true,
+  "drift_summary": {
+    "overall_drift_detected": true,
+    "reference_rows": 40,
+    "current_rows": 40,
+    "n_features_monitored": 6,
+    "n_features_with_drift": 4,
+    "drifted_features": [
+      "sensor_std",
+      "sensor_mean",
+      "sensor_min",
+      "spc_max_abs_zscore"
+    ],
+    "thresholds": {
+      "psi_threshold": 0.25,
+      "mean_shift_threshold": 1.0,
+      "missing_rate_shift_threshold": 0.1
+    }
+  },
+  "performance_summary": {
+    "performance_alert": true,
+    "alert_reasons": [
+      "recall_drop_exceeds_threshold",
+      "pr_auc_drop_exceeds_threshold",
+      "false_alarm_increase_exceeds_threshold"
+    ],
+    "metric_deltas": {
+      "accuracy_delta_current_minus_reference": -0.32499999999999996,
+      "precision_delta_current_minus_reference": -0.5882352941176471,
+      "recall_delta_current_minus_reference": -0.30000000000000004,
+      "f1_delta_current_minus_reference": -0.4814814814814815,
+      "pr_auc_delta_current_minus_reference": -0.16273258904837862,
+      "false_alarms_per_100_lots_delta_current_minus_reference": 25.0
+    },
+    "reference_metrics_preview": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "pr_auc": 1.0,
+      "false_alarms_per_100_lots": 0.0,
+      "confusion_matrix": {
+        "true_negative": 34,
+        "false_positive": 0,
+        "false_negative": 0,
+        "true_positive": 6
+      }
+    },
+    "current_metrics_preview": {
+      "accuracy": 0.675,
+      "precision": 0.4117647058823529,
+      "recall": 0.7,
+      "f1": 0.5185185185185185,
+      "pr_auc": 0.8372674109516214,
+      "false_alarms_per_100_lots": 25.0,
+      "confusion_matrix": {
+        "true_negative": 20,
+        "false_positive": 10,
+        "false_negative": 3,
+        "true_positive": 7
+      }
+    },
+    "thresholds": {
+      "min_current_recall": 0.7,
+      "min_current_pr_auc": 0.7,
+      "max_recall_drop": 0.15,
+      "max_pr_auc_drop": 0.15,
+      "max_false_alarm_increase_per_100_lots": 5.0
+    }
+  },
+  "recommended_actions": [
+    "Review drifted features and compare them with recent tool, chamber, recipe, and maintenance changes.",
+    "Prioritize investigation of drifted features: sensor_std, sensor_mean, sensor_min, spc_max_abs_zscore.",
+    "Review current-period false positives and false negatives to understand whether the alert threshold or model signal has degraded.",
+    "Check whether current labels reflect a new operating regime, recipe mix, tool condition, or process variation.",
+    "Evaluate alert fatigue risk and consider raising the threshold or limiting escalation volume per shift.",
+    "Investigate missed risky lots and consider retraining, recalibration, or adding new process/event features.",
+    "Check whether risk ranking quality degraded; compare top-K lots against actual outcomes."
+  ],
+  "interpretation_note": "This alert summary combines data drift and model performance signals. It is a decision-support artifact, not an automatic root-cause diagnosis."
+}
