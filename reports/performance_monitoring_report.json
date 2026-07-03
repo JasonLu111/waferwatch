@@ -1,0 +1,79 @@
+{
+  "model_file": "D:\\waferwatch\\models\\spc_selected_logistic_regression.joblib",
+  "feature_table_file": "D:\\waferwatch\\data\\processed\\demo_spc_selected_feature_table.csv",
+  "reference_rows": 40,
+  "current_rows": 40,
+  "threshold": 0.5,
+  "feature_columns": [
+    "sensor_mean",
+    "sensor_std",
+    "sensor_min",
+    "sensor_max",
+    "spc_violation_count",
+    "spc_max_abs_zscore"
+  ],
+  "reference_metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "balanced_accuracy": 1.0,
+    "matthews_corrcoef": 1.0,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "precision_at_k": 0.6,
+    "recall_at_k": 1.0,
+    "top_k": 10,
+    "false_alarms_per_100_lots": 0.0,
+    "confusion_matrix": {
+      "true_negative": 34,
+      "false_positive": 0,
+      "false_negative": 0,
+      "true_positive": 6
+    }
+  },
+  "current_metrics": {
+    "accuracy": 0.675,
+    "precision": 0.4117647058823529,
+    "recall": 0.7,
+    "f1": 0.5185185185185185,
+    "balanced_accuracy": 0.6833333333333333,
+    "matthews_corrcoef": 0.3211764393605811,
+    "roc_auc": 0.8933333333333333,
+    "pr_auc": 0.8372674109516214,
+    "precision_at_k": 0.7,
+    "recall_at_k": 0.7,
+    "top_k": 10,
+    "false_alarms_per_100_lots": 25.0,
+    "confusion_matrix": {
+      "true_negative": 20,
+      "false_positive": 10,
+      "false_negative": 3,
+      "true_positive": 7
+    }
+  },
+  "performance_comparison": {
+    "performance_alert": true,
+    "alert_reasons": [
+      "recall_drop_exceeds_threshold",
+      "pr_auc_drop_exceeds_threshold",
+      "false_alarm_increase_exceeds_threshold"
+    ],
+    "metric_deltas": {
+      "accuracy_delta_current_minus_reference": -0.32499999999999996,
+      "precision_delta_current_minus_reference": -0.5882352941176471,
+      "recall_delta_current_minus_reference": -0.30000000000000004,
+      "f1_delta_current_minus_reference": -0.4814814814814815,
+      "pr_auc_delta_current_minus_reference": -0.16273258904837862,
+      "false_alarms_per_100_lots_delta_current_minus_reference": 25.0
+    },
+    "thresholds": {
+      "min_current_recall": 0.7,
+      "min_current_pr_auc": 0.7,
+      "max_recall_drop": 0.15,
+      "max_pr_auc_drop": 0.15,
+      "max_false_alarm_increase_per_100_lots": 5.0
+    }
+  },
+  "interpretation_note": "This demo intentionally simulates current-period performance degradation. In a real deployment, performance monitoring should use actual labels when they become available."
+}
