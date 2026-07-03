@@ -1,0 +1,21 @@
+{
+  "reference_rows": 40,
+  "current_rows": 40,
+  "n_features_monitored": 6,
+  "n_features_with_drift": 4,
+  "drifted_features": [
+    "sensor_std",
+    "sensor_mean",
+    "sensor_min",
+    "spc_max_abs_zscore"
+  ],
+  "thresholds": {
+    "psi_threshold": 0.25,
+    "mean_shift_threshold": 1.0,
+    "missing_rate_shift_threshold": 0.1
+  },
+  "overall_drift_detected": true,
+  "interpretation_note": "A drift alert means the current feature distribution differs from the reference period. It does not automatically mean the model is wrong, but it indicates that model performance should be checked when labels become available.",
+  "input_file": "D:\\waferwatch\\data\\processed\\demo_spc_selected_feature_table.csv",
+  "drift_table_file": "D:\\waferwatch\\data\\processed\\demo_drift_table.csv"
+}
