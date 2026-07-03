@@ -1,0 +1,51 @@
+{
+  "input_rows": 80,
+  "input_columns": 8,
+  "sensor_columns_found": 5,
+  "reference_rows_used_for_limits": 64,
+  "sigma_width": 3.0,
+  "output_rows": 80,
+  "output_columns": 8,
+  "created_features": [
+    "spc_violation_count",
+    "spc_violation_ratio",
+    "spc_max_abs_zscore",
+    "spc_any_violation",
+    "spc_top_violating_sensor"
+  ],
+  "lots_with_any_spc_violation": 16,
+  "spc_violation_rate": 0.2,
+  "control_limits_preview": {
+    "sensor_001": {
+      "mean": 10.996709971924007,
+      "std": 0.3682865876056765,
+      "lower_control_limit": 9.891850209106977,
+      "upper_control_limit": 12.101569734741037
+    },
+    "sensor_002": {
+      "mean": 11.91330992669878,
+      "std": 0.4522157725381169,
+      "lower_control_limit": 10.556662609084428,
+      "upper_control_limit": 13.269957244313131
+    },
+    "sensor_003": {
+      "mean": 12.974834823340487,
+      "std": 0.45631424213503935,
+      "lower_control_limit": 11.605892096935369,
+      "upper_control_limit": 14.343777549745605
+    },
+    "sensor_004": {
+      "mean": 14.001629443617707,
+      "std": 0.5488654863876351,
+      "lower_control_limit": 12.355032984454802,
+      "upper_control_limit": 15.648225902780613
+    },
+    "sensor_005": {
+      "mean": 15.038867488670824,
+      "std": 0.4724463368508729,
+      "lower_control_limit": 13.621528478118206,
+      "upper_control_limit": 16.456206499223445
+    }
+  },
+  "output_file": "D:\\waferwatch\\data\\processed\\demo_spc_features.csv"
+}
