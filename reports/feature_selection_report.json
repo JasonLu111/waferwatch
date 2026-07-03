@@ -1,0 +1,54 @@
+{
+  "input_rows": 80,
+  "input_columns": 14,
+  "output_rows": 80,
+  "output_columns": 9,
+  "preserved_columns": [
+    "lot_id",
+    "timestamp",
+    "pass_fail_label"
+  ],
+  "initial_candidate_columns": [
+    "sensor_mean",
+    "sensor_std",
+    "sensor_min",
+    "sensor_max",
+    "sensor_missing_count",
+    "sensor_missing_ratio",
+    "spc_violation_count",
+    "spc_violation_ratio",
+    "spc_max_abs_zscore",
+    "spc_any_violation",
+    "spc_top_violating_sensor"
+  ],
+  "removed_high_missing_columns": [],
+  "removed_non_numeric_columns_for_baseline": [
+    "spc_top_violating_sensor"
+  ],
+  "removed_constant_columns": [
+    "sensor_missing_count",
+    "sensor_missing_ratio"
+  ],
+  "removed_near_constant_columns": [],
+  "removed_high_correlation_columns": [
+    "spc_any_violation",
+    "spc_violation_ratio"
+  ],
+  "final_feature_columns": [
+    "sensor_mean",
+    "sensor_std",
+    "sensor_min",
+    "sensor_max",
+    "spc_violation_count",
+    "spc_max_abs_zscore"
+  ],
+  "n_final_features": 6,
+  "thresholds": {
+    "high_missing_threshold": 0.6,
+    "near_constant_threshold": 0.98,
+    "high_correlation_threshold": 0.95
+  },
+  "interpretation_note": "This feature selection step is intentionally conservative. Non-numeric features are excluded for the current baseline model, but they can be encoded and tested in later experiments.",
+  "input_file": "D:\\waferwatch\\data\\processed\\demo_spc_combined_feature_table.csv",
+  "output_file": "D:\\waferwatch\\data\\processed\\demo_spc_selected_feature_table.csv"
+}
