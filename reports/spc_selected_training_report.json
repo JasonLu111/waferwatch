@@ -1,0 +1,28 @@
+{
+  "model_name": "Logistic Regression Baseline",
+  "input_file": "D:\\waferwatch\\data\\processed\\demo_spc_selected_feature_table.csv",
+  "model_path": "D:\\waferwatch\\models\\spc_selected_logistic_regression.joblib",
+  "n_rows": 80,
+  "n_features": 6,
+  "feature_columns": [
+    "sensor_mean",
+    "sensor_std",
+    "sensor_min",
+    "sensor_max",
+    "spc_violation_count",
+    "spc_max_abs_zscore"
+  ],
+  "label_distribution": {
+    "0": 64,
+    "1": 16
+  },
+  "test_size": 0.3,
+  "random_state": 42,
+  "metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "roc_auc": 1.0
+  }
+}

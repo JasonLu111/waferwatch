@@ -1,0 +1,36 @@
+{
+  "model_file": "D:\\waferwatch\\models\\spc_selected_logistic_regression.joblib",
+  "feature_table_file": "D:\\waferwatch\\data\\processed\\demo_spc_selected_feature_table.csv",
+  "n_test_rows": 24,
+  "n_features": 6,
+  "feature_columns": [
+    "sensor_mean",
+    "sensor_std",
+    "sensor_min",
+    "sensor_max",
+    "spc_violation_count",
+    "spc_max_abs_zscore"
+  ],
+  "test_size": 0.3,
+  "random_state": 42,
+  "metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "balanced_accuracy": 1.0,
+    "matthews_corrcoef": 1.0,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "precision_at_k": 0.5,
+    "recall_at_k": 1.0,
+    "top_k": 10,
+    "false_alarms_per_100_lots": 0.0,
+    "confusion_matrix": {
+      "true_negative": 19,
+      "false_positive": 0,
+      "false_negative": 0,
+      "true_positive": 5
+    }
+  }
+}
