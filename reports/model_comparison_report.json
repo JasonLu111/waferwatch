@@ -1,0 +1,136 @@
+{
+  "comparison_name": "SPC-enhanced baseline comparison",
+  "dataset": "demo_spc_sensor_data_processed.csv",
+  "model_a": {
+    "name": "Sensor Aggregate Logistic Regression",
+    "feature_table": "demo_spc_aggregate_feature_table.csv",
+    "model_file": "spc_aggregate_logistic_regression.joblib",
+    "n_rows": 80,
+    "n_columns": 8,
+    "training_report": {
+      "model_name": "Logistic Regression Baseline",
+      "input_file": "D:\\waferwatch\\data\\processed\\demo_spc_aggregate_feature_table.csv",
+      "model_path": "D:\\waferwatch\\models\\spc_aggregate_logistic_regression.joblib",
+      "n_rows": 80,
+      "n_features": 6,
+      "feature_columns": [
+        "sensor_mean",
+        "sensor_std",
+        "sensor_min",
+        "sensor_max",
+        "sensor_missing_count",
+        "sensor_missing_ratio"
+      ],
+      "label_distribution": {
+        "0": 64,
+        "1": 16
+      },
+      "test_size": 0.3,
+      "random_state": 42,
+      "metrics": {
+        "accuracy": 0.875,
+        "precision": 0.75,
+        "recall": 0.6,
+        "f1": 0.6666666666666666,
+        "roc_auc": 0.6105263157894736
+      }
+    },
+    "evaluation_metrics": {
+      "accuracy": 0.875,
+      "precision": 0.75,
+      "recall": 0.6,
+      "f1": 0.6666666666666666,
+      "balanced_accuracy": 0.7736842105263158,
+      "matthews_corrcoef": 0.5964809080634605,
+      "roc_auc": 0.6105263157894736,
+      "pr_auc": 0.6297619047619047,
+      "precision_at_k": 0.3,
+      "recall_at_k": 0.6,
+      "false_alarms_per_100_lots": 4.166666666666666,
+      "confusion_matrix": {
+        "true_negative": 18,
+        "false_positive": 1,
+        "false_negative": 2,
+        "true_positive": 3
+      }
+    }
+  },
+  "model_b": {
+    "name": "Sensor Aggregate + SPC Logistic Regression",
+    "feature_table": "demo_spc_combined_feature_table.csv",
+    "model_file": "spc_combined_logistic_regression.joblib",
+    "n_rows": 80,
+    "n_columns": 14,
+    "spc_summary": {
+      "reference_rows_used_for_limits": 64,
+      "lots_with_any_spc_violation": 16,
+      "spc_violation_rate": 0.2,
+      "sigma_width": 3.0
+    },
+    "training_report": {
+      "model_name": "Logistic Regression Baseline",
+      "input_file": "D:\\waferwatch\\data\\processed\\demo_spc_combined_feature_table.csv",
+      "model_path": "D:\\waferwatch\\models\\spc_combined_logistic_regression.joblib",
+      "n_rows": 80,
+      "n_features": 10,
+      "feature_columns": [
+        "sensor_mean",
+        "sensor_std",
+        "sensor_min",
+        "sensor_max",
+        "sensor_missing_count",
+        "sensor_missing_ratio",
+        "spc_violation_count",
+        "spc_violation_ratio",
+        "spc_max_abs_zscore",
+        "spc_any_violation"
+      ],
+      "label_distribution": {
+        "0": 64,
+        "1": 16
+      },
+      "test_size": 0.3,
+      "random_state": 42,
+      "metrics": {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "roc_auc": 1.0
+      }
+    },
+    "evaluation_metrics": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "balanced_accuracy": 1.0,
+      "matthews_corrcoef": 1.0,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "precision_at_k": 0.5,
+      "recall_at_k": 1.0,
+      "false_alarms_per_100_lots": 0.0,
+      "confusion_matrix": {
+        "true_negative": 19,
+        "false_positive": 0,
+        "false_negative": 0,
+        "true_positive": 5
+      }
+    }
+  },
+  "metric_differences_model_b_minus_model_a": {
+    "accuracy": 0.125,
+    "precision": 0.25,
+    "recall": 0.4,
+    "f1": 0.33333333333333337,
+    "balanced_accuracy": 0.22631578947368425,
+    "matthews_corrcoef": 0.40351909193653945,
+    "roc_auc": 0.3894736842105264,
+    "pr_auc": 0.37023809523809526,
+    "precision_at_k": 0.2,
+    "recall_at_k": 0.4,
+    "false_alarms_per_100_lots": -4.166666666666666
+  },
+  "interpretation_note": "This comparison tests whether SPC features provide additional manufacturing-relevant signal beyond simple sensor aggregate features. The result should be interpreted as a demo experiment, not as a claim about real fab deployment performance."
+}
