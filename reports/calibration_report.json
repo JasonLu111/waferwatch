@@ -1,0 +1,128 @@
+{
+  "model_file": "D:\\waferwatch\\models\\spc_selected_logistic_regression.joblib",
+  "feature_table_file": "D:\\waferwatch\\data\\processed\\demo_spc_selected_feature_table.csv",
+  "training_report_file": "D:\\waferwatch\\reports\\spc_selected_training_report.json",
+  "n_test_rows": 24,
+  "test_size": 0.3,
+  "random_state": 42,
+  "n_bins": 10,
+  "feature_columns": [
+    "sensor_mean",
+    "sensor_std",
+    "sensor_min",
+    "sensor_max",
+    "spc_violation_count",
+    "spc_max_abs_zscore"
+  ],
+  "calibration_metrics": {
+    "brier_score": 0.004395230148656518,
+    "log_loss": 0.043329209321495775,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "expected_calibration_error": 0.04076026253306692,
+    "maximum_calibration_error": 0.265852075737394
+  },
+  "reliability_table": [
+    {
+      "bin_id": 0,
+      "bin_lower": 0.0,
+      "bin_upper": 0.1,
+      "n_samples": 19,
+      "avg_predicted_probability": 0.027875028230382598,
+      "observed_positive_rate": 0.0,
+      "absolute_calibration_error": 0.027875028230382598,
+      "weighted_calibration_error": 0.022067730682386225
+    },
+    {
+      "bin_id": 1,
+      "bin_lower": 0.1,
+      "bin_upper": 0.2,
+      "n_samples": 0,
+      "avg_predicted_probability": NaN,
+      "observed_positive_rate": NaN,
+      "absolute_calibration_error": NaN,
+      "weighted_calibration_error": 0.0
+    },
+    {
+      "bin_id": 2,
+      "bin_lower": 0.2,
+      "bin_upper": 0.30000000000000004,
+      "n_samples": 0,
+      "avg_predicted_probability": NaN,
+      "observed_positive_rate": NaN,
+      "absolute_calibration_error": NaN,
+      "weighted_calibration_error": 0.0
+    },
+    {
+      "bin_id": 3,
+      "bin_lower": 0.30000000000000004,
+      "bin_upper": 0.4,
+      "n_samples": 0,
+      "avg_predicted_probability": NaN,
+      "observed_positive_rate": NaN,
+      "absolute_calibration_error": NaN,
+      "weighted_calibration_error": 0.0
+    },
+    {
+      "bin_id": 4,
+      "bin_lower": 0.4,
+      "bin_upper": 0.5,
+      "n_samples": 0,
+      "avg_predicted_probability": NaN,
+      "observed_positive_rate": NaN,
+      "absolute_calibration_error": NaN,
+      "weighted_calibration_error": 0.0
+    },
+    {
+      "bin_id": 5,
+      "bin_lower": 0.5,
+      "bin_upper": 0.6000000000000001,
+      "n_samples": 0,
+      "avg_predicted_probability": NaN,
+      "observed_positive_rate": NaN,
+      "absolute_calibration_error": NaN,
+      "weighted_calibration_error": 0.0
+    },
+    {
+      "bin_id": 6,
+      "bin_lower": 0.6000000000000001,
+      "bin_upper": 0.7000000000000001,
+      "n_samples": 0,
+      "avg_predicted_probability": NaN,
+      "observed_positive_rate": NaN,
+      "absolute_calibration_error": NaN,
+      "weighted_calibration_error": 0.0
+    },
+    {
+      "bin_id": 7,
+      "bin_lower": 0.7000000000000001,
+      "bin_upper": 0.8,
+      "n_samples": 1,
+      "avg_predicted_probability": 0.734147924262606,
+      "observed_positive_rate": 1.0,
+      "absolute_calibration_error": 0.265852075737394,
+      "weighted_calibration_error": 0.011077169822391417
+    },
+    {
+      "bin_id": 8,
+      "bin_lower": 0.8,
+      "bin_upper": 0.9,
+      "n_samples": 1,
+      "avg_predicted_probability": 0.8671217636506224,
+      "observed_positive_rate": 1.0,
+      "absolute_calibration_error": 0.13287823634937757,
+      "weighted_calibration_error": 0.0055365931812240655
+    },
+    {
+      "bin_id": 9,
+      "bin_lower": 0.9,
+      "bin_upper": 1.0,
+      "n_samples": 3,
+      "avg_predicted_probability": 0.9833698492234783,
+      "observed_positive_rate": 1.0,
+      "absolute_calibration_error": 0.016630150776521746,
+      "weighted_calibration_error": 0.0020787688470652183
+    }
+  ],
+  "interpretation_note": "This calibration report evaluates the probability quality of the current demo model. Because the dataset is synthetic and small, the result should be used to validate the calibration workflow rather than to claim production probability reliability."
+}
