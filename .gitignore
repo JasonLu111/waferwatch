@@ -36,3 +36,4 @@ mlruns/
 Thumbs.db
 .vscode/
 "@ | Set-Content .gitignore -Encoding UTF8
+
