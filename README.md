@@ -1,4 +1,4 @@
-# WaferWatch
+﻿# WaferWatch
 
 **Cost-Sensitive Fab Anomaly Monitoring and Evidence-Grounded Root-Cause Triage**
 
@@ -63,7 +63,7 @@ The current implementation includes:
 | Data card | Completed |
 | Model card | Completed |
 | Drift monitoring report | Completed |
-| README | In progress |
+| README | Completed |
 
 Planned later modules include:
 
