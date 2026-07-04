@@ -435,7 +435,7 @@ These limitations are documented intentionally to prevent overclaiming.
 Planned next steps:
 
 - Add threshold recalibration experiments.
-- Add Random Forest and gradient boosting baselines.
+- Add gradient boosting baseline.
 - Add unsupervised anomaly detection models.
 - Add prediction-score drift monitoring.
 - Add model explainability.
@@ -466,4 +466,5 @@ clean data
 ```
 
 The project is not production-ready, but it demonstrates a serious architecture for cost-sensitive, monitored, human-in-the-loop manufacturing AI.
+
 

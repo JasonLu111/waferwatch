@@ -495,7 +495,7 @@ Current limitations:
 Recommended technical next steps:
 
 - Add threshold recalibration experiments.
-- Add Random Forest and gradient boosting baselines.
+- Add gradient boosting baseline.
 - Add unsupervised anomaly detection.
 - Add prediction-score drift monitoring.
 - Add model retraining trigger logic.
@@ -529,5 +529,6 @@ data validation
 ```
 
 The current model card documents the system as a controlled demo. The pipeline is not production-ready, but it demonstrates the architecture, evaluation discipline, and monitoring logic expected of a serious manufacturing anomaly monitoring project.
+
 
 
