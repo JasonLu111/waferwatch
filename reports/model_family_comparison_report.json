@@ -1,124 +1,213 @@
 {
-  "comparison_name": "Model family comparison",
+  "comparison_name": "Three-model family comparison",
   "feature_table": "demo_spc_selected_feature_table.csv",
-  "logistic_regression": {
-    "name": "Logistic Regression selected-feature baseline",
-    "model_file": "spc_selected_logistic_regression.joblib",
-    "training_report": {
-      "model_name": "Logistic Regression Baseline",
-      "input_file": "D:\\waferwatch\\data\\processed\\demo_spc_selected_feature_table.csv",
-      "model_path": "D:\\waferwatch\\models\\spc_selected_logistic_regression.joblib",
-      "n_rows": 80,
-      "n_features": 6,
-      "feature_columns": [
-        "sensor_mean",
-        "sensor_std",
-        "sensor_min",
-        "sensor_max",
-        "spc_violation_count",
-        "spc_max_abs_zscore"
-      ],
-      "label_distribution": {
-        "0": 64,
-        "1": 16
+  "models": {
+    "logistic_regression": {
+      "name": "Logistic Regression selected-feature baseline",
+      "model_file": "spc_selected_logistic_regression.joblib",
+      "training_report": {
+        "model_name": "Logistic Regression Baseline",
+        "input_file": "D:\\waferwatch\\data\\processed\\demo_spc_selected_feature_table.csv",
+        "model_path": "D:\\waferwatch\\models\\spc_selected_logistic_regression.joblib",
+        "n_rows": 80,
+        "n_features": 6,
+        "feature_columns": [
+          "sensor_mean",
+          "sensor_std",
+          "sensor_min",
+          "sensor_max",
+          "spc_violation_count",
+          "spc_max_abs_zscore"
+        ],
+        "label_distribution": {
+          "0": 64,
+          "1": 16
+        },
+        "test_size": 0.3,
+        "random_state": 42,
+        "metrics": {
+          "accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "roc_auc": 1.0
+        }
       },
-      "test_size": 0.3,
-      "random_state": 42,
-      "metrics": {
+      "evaluation_metrics": {
         "accuracy": 1.0,
         "precision": 1.0,
         "recall": 1.0,
         "f1": 1.0,
-        "roc_auc": 1.0
+        "balanced_accuracy": 1.0,
+        "matthews_corrcoef": 1.0,
+        "roc_auc": 1.0,
+        "pr_auc": 1.0,
+        "precision_at_k": 0.5,
+        "recall_at_k": 1.0,
+        "top_k": 10,
+        "false_alarms_per_100_lots": 0.0,
+        "confusion_matrix": {
+          "true_negative": 19,
+          "false_positive": 0,
+          "false_negative": 0,
+          "true_positive": 5
+        }
       }
     },
-    "evaluation_metrics": {
-      "accuracy": 1.0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "balanced_accuracy": 1.0,
-      "matthews_corrcoef": 1.0,
-      "roc_auc": 1.0,
-      "pr_auc": 1.0,
-      "precision_at_k": 0.5,
-      "recall_at_k": 1.0,
-      "false_alarms_per_100_lots": 0.0,
-      "confusion_matrix": {
-        "true_negative": 19,
-        "false_positive": 0,
-        "false_negative": 0,
-        "true_positive": 5
-      }
+    "random_forest": {
+      "name": "Random Forest selected-feature baseline",
+      "model_file": "random_forest_selected_baseline.joblib",
+      "model_parameters": {
+        "n_estimators": 300,
+        "max_depth": null,
+        "class_weight": "balanced",
+        "random_state": 42
+      },
+      "evaluation_metrics": {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "matthews_corrcoef": 1.0,
+        "roc_auc": 1.0,
+        "pr_auc": 1.0,
+        "precision_at_k": 0.5,
+        "recall_at_k": 1.0,
+        "top_k": 10,
+        "false_alarms_per_100_lots": 0.0,
+        "confusion_matrix": {
+          "true_negative": 19,
+          "false_positive": 0,
+          "false_negative": 0,
+          "true_positive": 5
+        }
+      },
+      "feature_importance": [
+        {
+          "feature": "spc_violation_count",
+          "importance": 0.3740992189082515
+        },
+        {
+          "feature": "spc_max_abs_zscore",
+          "importance": 0.36900133352633646
+        },
+        {
+          "feature": "sensor_std",
+          "importance": 0.1198225734254631
+        },
+        {
+          "feature": "sensor_mean",
+          "importance": 0.10339441563033133
+        },
+        {
+          "feature": "sensor_max",
+          "importance": 0.019614490465389465
+        },
+        {
+          "feature": "sensor_min",
+          "importance": 0.014067968044228147
+        }
+      ]
+    },
+    "gradient_boosting": {
+      "name": "Gradient Boosting selected-feature baseline",
+      "model_file": "gradient_boosting_selected_baseline.joblib",
+      "model_parameters": {
+        "n_estimators": 200,
+        "learning_rate": 0.05,
+        "max_depth": 3,
+        "sample_weighting": "balanced",
+        "random_state": 42
+      },
+      "evaluation_metrics": {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "matthews_corrcoef": 1.0,
+        "roc_auc": 1.0,
+        "pr_auc": 1.0,
+        "precision_at_k": 0.5,
+        "recall_at_k": 1.0,
+        "top_k": 10,
+        "false_alarms_per_100_lots": 0.0,
+        "confusion_matrix": {
+          "true_negative": 19,
+          "false_positive": 0,
+          "false_negative": 0,
+          "true_positive": 5
+        }
+      },
+      "feature_importance": [
+        {
+          "feature": "spc_max_abs_zscore",
+          "importance": 0.592687792909925
+        },
+        {
+          "feature": "spc_violation_count",
+          "importance": 0.407312207090075
+        },
+        {
+          "feature": "sensor_std",
+          "importance": 0.0
+        },
+        {
+          "feature": "sensor_mean",
+          "importance": 0.0
+        },
+        {
+          "feature": "sensor_max",
+          "importance": 0.0
+        },
+        {
+          "feature": "sensor_min",
+          "importance": 0.0
+        }
+      ]
     }
   },
-  "random_forest": {
-    "name": "Random Forest selected-feature baseline",
-    "model_file": "random_forest_selected_baseline.joblib",
-    "model_parameters": {
-      "n_estimators": 300,
-      "max_depth": null,
-      "class_weight": "balanced",
-      "random_state": 42
+  "metric_differences": {
+    "random_forest_minus_logistic_regression": {
+      "accuracy": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "balanced_accuracy": 0.0,
+      "matthews_corrcoef": 0.0,
+      "roc_auc": 0.0,
+      "pr_auc": 0.0,
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "false_alarms_per_100_lots": 0.0
     },
-    "evaluation_metrics": {
-      "accuracy": 1.0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "balanced_accuracy": 1.0,
-      "matthews_corrcoef": 1.0,
-      "roc_auc": 1.0,
-      "pr_auc": 1.0,
-      "precision_at_k": 0.5,
-      "recall_at_k": 1.0,
-      "false_alarms_per_100_lots": 0.0,
-      "confusion_matrix": {
-        "true_negative": 19,
-        "false_positive": 0,
-        "false_negative": 0,
-        "true_positive": 5
-      }
+    "gradient_boosting_minus_logistic_regression": {
+      "accuracy": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "balanced_accuracy": 0.0,
+      "matthews_corrcoef": 0.0,
+      "roc_auc": 0.0,
+      "pr_auc": 0.0,
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "false_alarms_per_100_lots": 0.0
     },
-    "feature_importance": [
-      {
-        "feature": "spc_violation_count",
-        "importance": 0.3740992189082515
-      },
-      {
-        "feature": "spc_max_abs_zscore",
-        "importance": 0.36900133352633646
-      },
-      {
-        "feature": "sensor_std",
-        "importance": 0.1198225734254631
-      },
-      {
-        "feature": "sensor_mean",
-        "importance": 0.10339441563033133
-      },
-      {
-        "feature": "sensor_max",
-        "importance": 0.019614490465389465
-      },
-      {
-        "feature": "sensor_min",
-        "importance": 0.014067968044228147
-      }
-    ]
+    "gradient_boosting_minus_random_forest": {
+      "accuracy": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "balanced_accuracy": 0.0,
+      "matthews_corrcoef": 0.0,
+      "roc_auc": 0.0,
+      "pr_auc": 0.0,
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "false_alarms_per_100_lots": 0.0
+    }
   },
-  "metric_differences_random_forest_minus_logistic_regression": {
-    "accuracy": 0.0,
-    "precision": 0.0,
-    "recall": 0.0,
-    "f1": 0.0,
-    "balanced_accuracy": 0.0,
-    "matthews_corrcoef": 0.0,
-    "roc_auc": 0.0,
-    "pr_auc": 0.0,
-    "precision_at_k": 0.0,
-    "recall_at_k": 0.0,
-    "false_alarms_per_100_lots": 0.0
-  },
-  "interpretation_note": "In the current controlled synthetic demo, both Logistic Regression and Random Forest achieve perfect test metrics on the selected SPC-enhanced feature table. This suggests the selected SPC features strongly encode the injected anomaly mechanism. It does not prove production performance. Random Forest additionally provides feature importance, showing that SPC violation count and maximum absolute SPC z-score dominate the demo signal."
+  "interpretation_note": "In the current controlled synthetic SPC demo, Logistic Regression, Random Forest, and Gradient Boosting all achieve perfect headline test metrics on the selected SPC-enhanced feature table. This indicates that the selected SPC features strongly encode the injected anomaly mechanism. The result validates the model comparison workflow, but it should not be interpreted as production fab performance. The tree-based models add value by providing feature importance: Random Forest uses both SPC violation count and maximum absolute SPC z-score, while Gradient Boosting places most importance on maximum absolute SPC z-score and SPC violation count."
 }
