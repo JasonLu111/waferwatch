@@ -1,4 +1,3 @@
-@'
 # WaferWatch Data Card
 
 ## 1. Dataset Overview
