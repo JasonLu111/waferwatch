@@ -301,7 +301,38 @@ The incorrect conclusion would be:
 
 ---
 
-## 12. Calibration Analysis
+## 12. Model Family Comparison
+
+WaferWatch now includes a model family comparison between Logistic Regression and Random Forest on the same selected SPC-enhanced feature table.
+
+| Metric | Logistic Regression | Random Forest | RF - LR |
+|---|---:|---:|---:|
+| Accuracy | 1.000000 | 1.000000 | 0.000000 |
+| Precision | 1.000000 | 1.000000 | 0.000000 |
+| Recall | 1.000000 | 1.000000 | 0.000000 |
+| F1 | 1.000000 | 1.000000 | 0.000000 |
+| ROC-AUC | 1.000000 | 1.000000 | 0.000000 |
+| PR-AUC | 1.000000 | 1.000000 | 0.000000 |
+| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 |
+
+Random Forest feature importance:
+
+| Rank | Feature | Importance |
+|---:|---|---:|
+| 1 | `spc_violation_count` | 0.374099 |
+| 2 | `spc_max_abs_zscore` | 0.369001 |
+| 3 | `sensor_std` | 0.119823 |
+| 4 | `sensor_mean` | 0.103394 |
+| 5 | `sensor_max` | 0.019614 |
+| 6 | `sensor_min` | 0.014068 |
+
+Interpretation:
+
+In the current controlled synthetic demo, both Logistic Regression and Random Forest achieve perfect test metrics on the selected SPC-enhanced feature table. This suggests that the selected SPC features strongly encode the injected anomaly mechanism. It does not prove production performance. Random Forest additionally provides feature importance, showing that SPC violation count and maximum absolute SPC z-score dominate the demo signal.
+
+---
+
+## 13. Calibration Analysis
 
 WaferWatch includes calibration analysis because predicted risk scores are used for cost-sensitive thresholding and engineering escalation decisions.
 
@@ -320,7 +351,7 @@ The current result should be interpreted as validation of the calibration workfl
 
 ---
 
-## 13. Cost-Sensitive Thresholding
+## 14. Cost-Sensitive Thresholding
 
 WaferWatch includes a thresholding module because the default 0.5 threshold is often not appropriate for manufacturing anomaly detection.
 
@@ -344,7 +375,7 @@ This shows that maximizing recall alone is not always optimal. A very low thresh
 
 ---
 
-## 14. Prediction Output
+## 15. Prediction Output
 
 The batch prediction module produces lot-level prediction outputs with:
 
@@ -362,11 +393,11 @@ The current batch prediction output is designed to support engineering triage ra
 
 ---
 
-## 15. Monitoring
+## 16. Monitoring
 
 WaferWatch includes both drift monitoring and performance monitoring.
 
-### 15.1 Drift Monitoring
+### 16.1 Drift Monitoring
 
 Drift monitoring compares reference and current feature distributions.
 
@@ -393,7 +424,7 @@ Detected drifted features:
 - `sensor_min`
 - `spc_max_abs_zscore`
 
-### 15.2 Performance Monitoring
+### 16.2 Performance Monitoring
 
 Performance monitoring compares reference and current model performance after labels become available.
 
@@ -414,7 +445,7 @@ Performance alert reasons:
 - `pr_auc_drop_exceeds_threshold`
 - `false_alarm_increase_exceeds_threshold`
 
-### 15.3 Alert Summary
+### 16.3 Alert Summary
 
 The combined monitoring alert level is:
 
@@ -428,7 +459,7 @@ The alert summary is a decision-support artifact. It does not automatically iden
 
 ---
 
-## 16. Ethical and Operational Considerations
+## 17. Ethical and Operational Considerations
 
 WaferWatch should support engineers, not replace them.
 
@@ -443,13 +474,13 @@ Important considerations:
 
 ---
 
-## 17. Limitations
+## 18. Limitations
 
 Current limitations:
 
 - Synthetic demo data only.
 - Small sample size.
-- Logistic Regression baseline only.
+- Logistic Regression and Random Forest baselines only.
 - No real equipment, chamber, recipe, maintenance, or process-event data yet.
 - No external validation dataset.
 - No full root-cause retrieval pipeline yet.
@@ -459,7 +490,7 @@ Current limitations:
 
 ---
 
-## 18. Recommended Next Steps
+## 19. Recommended Next Steps
 
 Recommended technical next steps:
 
@@ -477,7 +508,7 @@ Recommended technical next steps:
 
 ---
 
-## 19. Model Card Summary
+## 20. Model Card Summary
 
 WaferWatch currently demonstrates a complete baseline manufacturing AI workflow:
 

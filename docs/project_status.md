@@ -17,6 +17,8 @@ data validation
 -> model evaluation
 -> model comparison
 -> calibration analysis
+-> Random Forest baseline
+-> model family comparison
 -> cost-sensitive thresholding
 -> batch prediction
 -> drift monitoring
@@ -66,6 +68,9 @@ WaferWatch can currently:
 - Create SPC-derived manufacturing features.
 - Select stable numeric features for baseline modeling.
 - Train Logistic Regression baseline models.
+- Train Random Forest baseline models.
+- Compare Logistic Regression and Random Forest model families.
+- Generate Random Forest feature importance.
 - Compare aggregate-only, SPC-enhanced, and feature-selected models.
 - Evaluate with metrics beyond accuracy.
 - Tune alert thresholds using cost-sensitive logic.
@@ -93,6 +98,19 @@ WaferWatch can currently:
 Interpretation:
 
 > The SPC-enhanced models perform strongly in this controlled demo because the anomaly mechanism was intentionally injected into sensor shifts. This validates the pipeline logic but does not prove real fab performance.
+
+### Model Family Comparison
+
+| Metric | Logistic Regression | Random Forest | RF - LR |
+|---|---:|---:|---:|
+| Accuracy | 1.000000 | 1.000000 | 0.000000 |
+| Precision | 1.000000 | 1.000000 | 0.000000 |
+| Recall | 1.000000 | 1.000000 | 0.000000 |
+| F1 | 1.000000 | 1.000000 | 0.000000 |
+| PR-AUC | 1.000000 | 1.000000 | 0.000000 |
+| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 |
+
+Random Forest feature importance shows that `spc_violation_count` and `spc_max_abs_zscore` are the strongest demo signals.
 
 ### Thresholding Result
 
@@ -125,7 +143,7 @@ The current project is still limited by:
 
 - Synthetic demo data only.
 - Small sample size.
-- Logistic Regression baseline only.
+- Logistic Regression and Random Forest baselines only.
 - No real production sensor data yet.
 - No real tool, chamber, route, recipe, or maintenance records yet.
 - No real metrology, inspection, or yield labels.
@@ -143,7 +161,6 @@ The current project is still limited by:
 
 Recommended next steps:
 
-- Add Random Forest baseline.
 - Add gradient boosting baseline.
 - Add unsupervised anomaly detection baseline.
 - Add prediction-score drift monitoring.
@@ -162,26 +179,22 @@ Recommended next steps:
 
 ## 7. Suggested Immediate Next Step
 
-The next best implementation step is:
+    The next best implementation step is:
 
-`	ext
-Random Forest baseline
-` 
+    ```text
+    gradient boosting baseline
 
-Reason:
+    Reason:
 
-The project now has Logistic Regression, SPC features, feature selection, thresholding, monitoring, and calibration. The next step is to compare a stronger nonlinear tabular baseline against the current Logistic Regression baseline.
+    The project now has Logistic Regression, Random Forest, SPC features, feature selection, thresholding, monitoring, and calibration. The next step is to compare a stronger boosting-style tabular baseline against the current models.
 
-This will add:
+    This will add:
 
-- Nonlinear feature interaction modeling
-- Feature importance analysis
-- Stronger tabular baseline comparison
-- Better model family comparison evidence
-
----
-
-## 8. Summary
+    Stronger nonlinear tabular modeling
+    Better comparison against Random Forest
+    More realistic model family comparison evidence
+    A useful bridge toward LightGBM or XGBoost
+    8. Summary
 
 WaferWatch has completed its first working baseline system.
 

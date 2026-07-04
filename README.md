@@ -55,6 +55,8 @@ The current implementation includes:
 | Baseline model training | Completed |
 | Model evaluation | Completed |
 | Model comparison | Completed |
+| Model family comparison | Completed |
+| Random Forest baseline | Completed |
 | Calibration analysis | Completed |
 | Cost-sensitive thresholding | Completed |
 | Batch prediction | Completed |
@@ -68,7 +70,7 @@ The current implementation includes:
 
 Planned later modules include:
 
-- Random Forest and gradient boosting baselines
+- Gradient boosting baseline
 - Unsupervised anomaly detection
 - Model explainability
 - Evidence-grounded RAG root-cause triage
@@ -134,20 +136,20 @@ The current WaferWatch pipeline is:
 
 ```text
 data validation
-→ ingestion
-→ cleaning
-→ feature engineering
-→ SPC feature engineering
-→ feature selection
-→ model training
-→ model evaluation
-→ model comparison
-→ cost-sensitive thresholding
-→ batch prediction
-→ drift monitoring
-→ performance monitoring
-→ monitoring alert summary
-→ documentation
+-> ingestion
+-> cleaning
+-> feature engineering
+-> SPC feature engineering
+-> feature selection
+-> model training
+-> model evaluation
+-> model comparison
+-> cost-sensitive thresholding
+-> batch prediction
+-> drift monitoring
+-> performance monitoring
+-> monitoring alert summary
+-> documentation
 ```
 
 ---
@@ -273,6 +275,33 @@ Important interpretation:
 
 > This is a controlled synthetic experiment. SPC features perform very well because the anomaly mechanism was intentionally injected into sensor shifts. This result validates the pipeline logic, not real-world fab performance.
 
+### 8.2 Model Family Comparison
+
+The selected-feature Logistic Regression baseline was compared against Random Forest on the same selected SPC-enhanced feature table.
+
+| Metric | Logistic Regression | Random Forest | RF - LR |
+|---|---:|---:|---:|
+| Accuracy | 1.000000 | 1.000000 | 0.000000 |
+| Precision | 1.000000 | 1.000000 | 0.000000 |
+| Recall | 1.000000 | 1.000000 | 0.000000 |
+| F1 | 1.000000 | 1.000000 | 0.000000 |
+| ROC-AUC | 1.000000 | 1.000000 | 0.000000 |
+| PR-AUC | 1.000000 | 1.000000 | 0.000000 |
+| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 |
+
+Random Forest feature importance shows that the strongest demo signals are:
+
+| Rank | Feature | Importance |
+|---:|---|---:|
+| 1 | `spc_violation_count` | 0.374099 |
+| 2 | `spc_max_abs_zscore` | 0.369001 |
+| 3 | `sensor_std` | 0.119823 |
+| 4 | `sensor_mean` | 0.103394 |
+
+Interpretation:
+
+In the current synthetic SPC demo, Random Forest does not improve headline metrics over Logistic Regression because the selected SPC features already separate the injected anomaly mechanism. Random Forest still adds value by providing nonlinear baseline evidence and feature importance.
+
 ---
 
 ## 9. Calibration Analysis
@@ -376,6 +405,8 @@ This alert is triggered because both feature drift and model performance degrada
 | `reports/data_card.md` | Describes demo data, label definition, limitations, and appropriate use |
 | `reports/model_card.md` | Describes model versions, feature strategies, evaluation, monitoring, and limitations |
 | `reports/drift_report.md` | Documents drift and performance monitoring results |
+| `reports/model_family_comparison_report.md` | Compares Logistic Regression and Random Forest on selected SPC features |
+| `reports/random_forest_report.md` | Documents Random Forest metrics and feature importance |
 | `reports/monitoring_alert_summary.md` | Engineer-readable combined alert summary |
 
 ---
@@ -424,14 +455,14 @@ WaferWatch currently demonstrates an end-to-end manufacturing AI anomaly monitor
 
 ```text
 clean data
-→ engineer manufacturing-aware features
-→ train baseline models
-→ compare feature strategies
-→ tune cost-sensitive thresholds
-→ generate lot-level risk scores
-→ monitor drift
-→ monitor performance
-→ summarize alerts for engineering review
+-> engineer manufacturing-aware features
+-> train baseline models
+-> compare feature strategies
+-> tune cost-sensitive thresholds
+-> generate lot-level risk scores
+-> monitor drift
+-> monitor performance
+-> summarize alerts for engineering review
 ```
 
 The project is not production-ready, but it demonstrates a serious architecture for cost-sensitive, monitored, human-in-the-loop manufacturing AI.
