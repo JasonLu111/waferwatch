@@ -143,7 +143,6 @@ The current project is still limited by:
 
 Recommended next steps:
 
-- Add calibration analysis.
 - Add Random Forest baseline.
 - Add gradient boosting baseline.
 - Add unsupervised anomaly detection baseline.

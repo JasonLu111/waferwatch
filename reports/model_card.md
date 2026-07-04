@@ -452,7 +452,6 @@ Current limitations:
 - Logistic Regression baseline only.
 - No real equipment, chamber, recipe, maintenance, or process-event data yet.
 - No external validation dataset.
-- No calibration analysis yet.
 - No full root-cause retrieval pipeline yet.
 - No production deployment or API validation yet.
 - No dashboard yet.

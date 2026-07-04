@@ -390,7 +390,6 @@ The current WaferWatch implementation has important limitations:
 - No real equipment, chamber, recipe, maintenance, or process-event data yet
 - No real metrology, inspection, or yield outcome labels
 - No external validation dataset
-- No calibration analysis yet
 - No full root-cause retrieval pipeline yet
 - No dashboard yet
 - No model serving API yet
@@ -404,7 +403,6 @@ These limitations are documented intentionally to prevent overclaiming.
 
 Planned next steps:
 
-- Add calibration analysis.
 - Add threshold recalibration experiments.
 - Add Random Forest and gradient boosting baselines.
 - Add unsupervised anomaly detection models.
