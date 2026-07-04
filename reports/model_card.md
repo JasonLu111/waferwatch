@@ -1,4 +1,4 @@
-# WaferWatch Model Card
+﻿# WaferWatch Model Card
 
 ## 1. Model Overview
 
@@ -466,18 +466,19 @@ WaferWatch currently demonstrates a complete baseline manufacturing AI workflow:
 
 ```text
 data validation
-→ ingestion
-→ cleaning
-→ feature engineering
-→ SPC features
-→ feature selection
-→ model training
-→ model evaluation
-→ cost-sensitive thresholding
-→ batch prediction
-→ drift monitoring
-→ performance monitoring
-→ monitoring alert summary
+-> ingestion
+-> cleaning
+-> feature engineering
+-> SPC features
+-> feature selection
+-> model training
+-> model evaluation
+-> cost-sensitive thresholding
+-> batch prediction
+-> drift monitoring
+-> performance monitoring
+-> monitoring alert summary
 ```
 
 The current model card documents the system as a controlled demo. The pipeline is not production-ready, but it demonstrates the architecture, evaluation discipline, and monitoring logic expected of a serious manufacturing anomaly monitoring project.
+
