@@ -55,6 +55,7 @@ The current implementation includes:
 | Baseline model training | Completed |
 | Model evaluation | Completed |
 | Model comparison | Completed |
+| Calibration analysis | Completed |
 | Cost-sensitive thresholding | Completed |
 | Batch prediction | Completed |
 | Drift monitoring | Completed |
@@ -67,7 +68,6 @@ The current implementation includes:
 
 Planned later modules include:
 
-- Calibration analysis
 - Random Forest and gradient boosting baselines
 - Unsupervised anomaly detection
 - Model explainability
@@ -275,7 +275,28 @@ Important interpretation:
 
 ---
 
-## 9. Cost-Sensitive Thresholding
+## 9. Calibration Analysis
+
+WaferWatch includes calibration analysis because risk scores are later used for thresholding, escalation, and monitoring.
+
+Current calibration demo results:
+
+| Metric | Value |
+|---|---:|
+| Brier score | 0.004395 |
+| Log loss | 0.043329 |
+| Expected calibration error | 0.040760 |
+| Maximum calibration error | 0.265852 |
+| ROC-AUC | 1.000000 |
+| PR-AUC | 1.000000 |
+
+Interpretation:
+
+The current calibration result validates the calibration workflow on a small synthetic demo. It should not be interpreted as production probability reliability.
+
+---
+
+## 10. Cost-Sensitive Thresholding
 
 WaferWatch includes cost-sensitive thresholding because the default 0.5 classifier threshold may not be operationally appropriate.
 
@@ -291,7 +312,7 @@ This shows that maximizing recall alone is not always the best operational decis
 
 ---
 
-## 10. Monitoring
+## 11. Monitoring
 
 WaferWatch currently includes two monitoring layers.
 
@@ -348,7 +369,7 @@ This alert is triggered because both feature drift and model performance degrada
 
 ---
 
-## 11. Key Reports
+## 12. Key Reports
 
 | Report | Purpose |
 |---|---|
@@ -359,7 +380,7 @@ This alert is triggered because both feature drift and model performance degrada
 
 ---
 
-## 12. Limitations
+## 13. Limitations
 
 The current WaferWatch implementation has important limitations:
 
@@ -379,7 +400,7 @@ These limitations are documented intentionally to prevent overclaiming.
 
 ---
 
-## 13. Next Steps
+## 14. Next Steps
 
 Planned next steps:
 
@@ -399,7 +420,7 @@ Planned next steps:
 
 ---
 
-## 14. Project Summary
+## 15. Project Summary
 
 WaferWatch currently demonstrates an end-to-end manufacturing AI anomaly monitoring workflow:
 
@@ -416,3 +437,4 @@ clean data
 ```
 
 The project is not production-ready, but it demonstrates a serious architecture for cost-sensitive, monitored, human-in-the-loop manufacturing AI.
+

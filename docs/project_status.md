@@ -1,4 +1,4 @@
-# WaferWatch Project Status Checklist
+﻿# WaferWatch Project Status Checklist
 
 ## 1. Current Stage
 
@@ -16,6 +16,7 @@ data validation
 -> model training
 -> model evaluation
 -> model comparison
+-> calibration analysis
 -> cost-sensitive thresholding
 -> batch prediction
 -> drift monitoring
@@ -129,7 +130,6 @@ The current project is still limited by:
 - No real tool, chamber, route, recipe, or maintenance records yet.
 - No real metrology, inspection, or yield labels.
 - No external validation dataset.
-- No model calibration analysis yet.
 - No SHAP or explainability module yet.
 - No RAG root-cause triage implementation yet.
 - No dashboard yet.
@@ -165,21 +165,20 @@ Recommended next steps:
 
 The next best implementation step is:
 
-```text
-calibration analysis
-```
+`	ext
+Random Forest baseline
+` 
 
 Reason:
 
-WaferWatch already uses risk scores and thresholding. Before adding more complex models, the project should check whether predicted probabilities are reasonably calibrated.
+The project now has Logistic Regression, SPC features, feature selection, thresholding, monitoring, and calibration. The next step is to compare a stronger nonlinear tabular baseline against the current Logistic Regression baseline.
 
-Calibration analysis will add:
+This will add:
 
-- Brier score
-- Calibration curve
-- Reliability table
-- Probability bin analysis
-- Thresholding interpretation improvement
+- Nonlinear feature interaction modeling
+- Feature importance analysis
+- Stronger tabular baseline comparison
+- Better model family comparison evidence
 
 ---
 
@@ -202,3 +201,4 @@ It is no longer a notebook-only ML idea. It now has:
 - GitHub README
 
 The next stage should deepen model quality, calibration, explainability, and RAG-based root-cause triage.
+

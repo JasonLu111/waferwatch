@@ -301,7 +301,26 @@ The incorrect conclusion would be:
 
 ---
 
-## 12. Cost-Sensitive Thresholding
+## 12. Calibration Analysis
+
+WaferWatch includes calibration analysis because predicted risk scores are used for cost-sensitive thresholding and engineering escalation decisions.
+
+Current calibration metrics:
+
+| Metric | Value | Meaning |
+|---|---:|---|
+| Brier score | 0.004395 | Lower is better; measures mean squared probability error |
+| Log loss | 0.043329 | Lower is better; penalizes confident wrong predictions |
+| Expected calibration error | 0.040760 | Weighted average calibration gap |
+| Maximum calibration error | 0.265852 | Largest bin-level calibration gap |
+| ROC-AUC | 1.000000 | Ranking quality across thresholds |
+| PR-AUC | 1.000000 | Ranking quality under class imbalance |
+
+The current result should be interpreted as validation of the calibration workflow on a controlled synthetic dataset. It should not be interpreted as production probability reliability.
+
+---
+
+## 13. Cost-Sensitive Thresholding
 
 WaferWatch includes a thresholding module because the default 0.5 threshold is often not appropriate for manufacturing anomaly detection.
 
@@ -325,7 +344,7 @@ This shows that maximizing recall alone is not always optimal. A very low thresh
 
 ---
 
-## 13. Prediction Output
+## 14. Prediction Output
 
 The batch prediction module produces lot-level prediction outputs with:
 
@@ -343,11 +362,11 @@ The current batch prediction output is designed to support engineering triage ra
 
 ---
 
-## 14. Monitoring
+## 15. Monitoring
 
 WaferWatch includes both drift monitoring and performance monitoring.
 
-### 14.1 Drift Monitoring
+### 15.1 Drift Monitoring
 
 Drift monitoring compares reference and current feature distributions.
 
@@ -374,7 +393,7 @@ Detected drifted features:
 - `sensor_min`
 - `spc_max_abs_zscore`
 
-### 14.2 Performance Monitoring
+### 15.2 Performance Monitoring
 
 Performance monitoring compares reference and current model performance after labels become available.
 
@@ -395,7 +414,7 @@ Performance alert reasons:
 - `pr_auc_drop_exceeds_threshold`
 - `false_alarm_increase_exceeds_threshold`
 
-### 14.3 Alert Summary
+### 15.3 Alert Summary
 
 The combined monitoring alert level is:
 
@@ -409,7 +428,7 @@ The alert summary is a decision-support artifact. It does not automatically iden
 
 ---
 
-## 15. Ethical and Operational Considerations
+## 16. Ethical and Operational Considerations
 
 WaferWatch should support engineers, not replace them.
 
@@ -424,7 +443,7 @@ Important considerations:
 
 ---
 
-## 16. Limitations
+## 17. Limitations
 
 Current limitations:
 
@@ -441,11 +460,10 @@ Current limitations:
 
 ---
 
-## 17. Recommended Next Steps
+## 18. Recommended Next Steps
 
 Recommended technical next steps:
 
-- Add calibration analysis.
 - Add threshold recalibration experiments.
 - Add Random Forest and gradient boosting baselines.
 - Add unsupervised anomaly detection.
@@ -460,7 +478,7 @@ Recommended technical next steps:
 
 ---
 
-## 18. Model Card Summary
+## 19. Model Card Summary
 
 WaferWatch currently demonstrates a complete baseline manufacturing AI workflow:
 
@@ -481,4 +499,5 @@ data validation
 ```
 
 The current model card documents the system as a controlled demo. The pipeline is not production-ready, but it demonstrates the architecture, evaluation discipline, and monitoring logic expected of a serious manufacturing anomaly monitoring project.
+
 
