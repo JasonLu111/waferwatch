@@ -188,7 +188,8 @@ Recommended next steps:
     The next best implementation step is:
 
     ```text
-Isolation Forest anomaly detection baseline
+    Isolation Forest threshold tuning and false-alarm budget analysis
+    ```
     Reason:
 
     The project now has Logistic Regression, Random Forest, SPC features, feature selection, thresholding, monitoring, and calibration. The next step is to compare a stronger boosting-style tabular baseline against the current models.
