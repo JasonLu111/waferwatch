@@ -19,6 +19,7 @@ data validation
 -> calibration analysis
 -> Random Forest baseline
 -> Gradient Boosting baseline
+-> Isolation Forest anomaly detection baseline
 -> model family comparison
 -> cost-sensitive thresholding
 -> batch prediction
@@ -71,7 +72,8 @@ WaferWatch can currently:
 - Train Logistic Regression baseline models.
 - Train Random Forest baseline models.
 - Train Gradient Boosting baseline models.
-- Compare Logistic Regression, Random Forest, and Gradient Boosting model families.
+- Train Isolation Forest anomaly detection baseline.
+- Compare Logistic Regression, Random Forest, Gradient Boosting, and Isolation Forest baselines.
 - Generate Random Forest feature importance.
 - Compare aggregate-only, SPC-enhanced, and feature-selected models.
 - Evaluate with metrics beyond accuracy.
@@ -101,22 +103,20 @@ Interpretation:
 
 > The SPC-enhanced models perform strongly in this controlled demo because the anomaly mechanism was intentionally injected into sensor shifts. This validates the pipeline logic but does not prove real fab performance.
 
-### Model Family Comparison
+### Model Family and Anomaly Baseline Comparison
 
-| Metric | Logistic Regression | Random Forest | Gradient Boosting |
-|---|---:|---:|---:|
-| Accuracy | 1.000000 | 1.000000 | 1.000000 |
-| Precision | 1.000000 | 1.000000 | 1.000000 |
-| Recall | 1.000000 | 1.000000 | 1.000000 |
-| F1 | 1.000000 | 1.000000 | 1.000000 |
-| PR-AUC | 1.000000 | 1.000000 | 1.000000 |
-| Precision@K | 0.500000 | 0.500000 | 0.500000 |
-| Recall@K | 1.000000 | 1.000000 | 1.000000 |
-| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 |
+| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest |
+|---|---:|---:|---:|---:|
+| Accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 |
+| Precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 |
+| Recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| F1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 |
+| PR-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| Precision@K | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
+| Recall@K | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 |
 
-Random Forest feature importance highlights `spc_violation_count` and `spc_max_abs_zscore`.
-
-Gradient Boosting feature importance highlights `spc_max_abs_zscore` and `spc_violation_count`.
+Isolation Forest captures all held-out failed lots in this demo but produces more false alarms than the supervised models. This creates a realistic discussion about label scarcity, anomaly ranking, threshold tuning, top-K review, and false-alarm budget control.
 
 ### Thresholding Result
 
@@ -149,7 +149,7 @@ The current project is still limited by:
 
 - Synthetic demo data only.
 - Small sample size.
-- Logistic Regression, Random Forest, and Gradient Boosting baselines only.
+- Logistic Regression, Random Forest, Gradient Boosting, and Isolation Forest baselines only.
 - No real production sensor data yet.
 - No real tool, chamber, route, recipe, or maintenance records yet.
 - No real metrology, inspection, or yield labels.
@@ -167,7 +167,7 @@ The current project is still limited by:
 
 Recommended next steps:
 
-- Add Isolation Forest anomaly detection baseline.
+- Add Isolation Forest threshold tuning and false-alarm budget analysis.
 - Add unsupervised anomaly detection baseline.
 - Add prediction-score drift monitoring.
 - Add model explainability.

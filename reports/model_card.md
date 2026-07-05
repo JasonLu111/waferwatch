@@ -301,47 +301,32 @@ The incorrect conclusion would be:
 
 ---
 
-## 12. Model Family Comparison
+## 12. Model Family and Anomaly Baseline Comparison
 
-WaferWatch now includes a three-model supervised family comparison between Logistic Regression, Random Forest, and Gradient Boosting on the same selected SPC-enhanced feature table.
+WaferWatch now includes a four-model comparison between three supervised classifiers and one unsupervised anomaly detector.
 
-| Metric | Logistic Regression | Random Forest | Gradient Boosting |
-|---|---:|---:|---:|
-| Accuracy | 1.000000 | 1.000000 | 1.000000 |
-| Precision | 1.000000 | 1.000000 | 1.000000 |
-| Recall | 1.000000 | 1.000000 | 1.000000 |
-| F1 | 1.000000 | 1.000000 | 1.000000 |
-| ROC-AUC | 1.000000 | 1.000000 | 1.000000 |
-| PR-AUC | 1.000000 | 1.000000 | 1.000000 |
-| Precision@K | 0.500000 | 0.500000 | 0.500000 |
-| Recall@K | 1.000000 | 1.000000 | 1.000000 |
-| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 |
+| Model | Learning type | Label usage |
+|---|---|---|
+| Logistic Regression | Supervised classification | Labels used during training |
+| Random Forest | Supervised classification | Labels used during training |
+| Gradient Boosting | Supervised classification | Labels used during training |
+| Isolation Forest | Unsupervised anomaly detection | Labels used only for evaluation |
 
-Random Forest feature importance:
-
-| Rank | Feature | Importance |
-|---:|---|---:|
-| 1 | `spc_violation_count` | 0.374099 |
-| 2 | `spc_max_abs_zscore` | 0.369001 |
-| 3 | `sensor_std` | 0.119823 |
-| 4 | `sensor_mean` | 0.103394 |
-| 5 | `sensor_max` | 0.019614 |
-| 6 | `sensor_min` | 0.014068 |
-
-Gradient Boosting feature importance:
-
-| Rank | Feature | Importance |
-|---:|---|---:|
-| 1 | `spc_max_abs_zscore` | 0.592688 |
-| 2 | `spc_violation_count` | 0.407312 |
-| 3 | `sensor_std` | 0.000000 |
-| 4 | `sensor_mean` | 0.000000 |
-| 5 | `sensor_max` | 0.000000 |
-| 6 | `sensor_min` | 0.000000 |
+| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest |
+|---|---:|---:|---:|---:|
+| Accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 |
+| Precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 |
+| Recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| F1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 |
+| ROC-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| PR-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| Precision@K | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
+| Recall@K | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 |
 
 Interpretation:
 
-In the current controlled synthetic demo, Logistic Regression, Random Forest, and Gradient Boosting all achieve perfect headline test metrics on the selected SPC-enhanced feature table. This suggests that the selected SPC features strongly encode the injected anomaly mechanism. It does not prove production performance. Tree-based models additionally provide feature importance for engineering interpretation.
+Isolation Forest is useful as an unsupervised anomaly detection baseline because it does not require confirmed failure labels during fitting. In this demo, it captures all held-out failed lots but produces more false alarms than the supervised models. This makes it useful for discussing label-scarce manufacturing monitoring, threshold tuning, top-K review, and false-alarm budget control.
 
 ---
 
@@ -493,7 +478,7 @@ Current limitations:
 
 - Synthetic demo data only.
 - Small sample size.
-- Logistic Regression, Random Forest, and Gradient Boosting baselines only.
+- Logistic Regression, Random Forest, Gradient Boosting, and Isolation Forest baselines only.
 - No real equipment, chamber, recipe, maintenance, or process-event data yet.
 - No external validation dataset.
 - No full root-cause retrieval pipeline yet.
@@ -508,7 +493,7 @@ Current limitations:
 Recommended technical next steps:
 
 - Add threshold recalibration experiments.
-- Add Isolation Forest anomaly detection baseline.
+- Add Isolation Forest threshold tuning and false-alarm budget analysis.
 - Add unsupervised anomaly detection.
 - Add prediction-score drift monitoring.
 - Add model retraining trigger logic.

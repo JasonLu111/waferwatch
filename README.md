@@ -58,6 +58,7 @@ The current implementation includes:
 | Model family comparison | Completed |
 | Random Forest baseline | Completed |
 | Gradient Boosting baseline | Completed |
+| Isolation Forest baseline | Completed |
 | Calibration analysis | Completed |
 | Cost-sensitive thresholding | Completed |
 | Batch prediction | Completed |
@@ -71,7 +72,7 @@ The current implementation includes:
 
 Planned later modules include:
 
-- Isolation Forest anomaly detection baseline
+- Isolation Forest threshold tuning and false-alarm budget analysis
 - Unsupervised anomaly detection
 - Model explainability
 - Evidence-grounded RAG root-cause triage
@@ -276,41 +277,25 @@ Important interpretation:
 
 > This is a controlled synthetic experiment. SPC features perform very well because the anomaly mechanism was intentionally injected into sensor shifts. This result validates the pipeline logic, not real-world fab performance.
 
-### 8.2 Model Family Comparison
+### 8.2 Model Family and Anomaly Baseline Comparison
 
-The selected-feature Logistic Regression baseline was compared against Random Forest and Gradient Boosting on the same selected SPC-enhanced feature table.
+The selected-feature supervised baselines were compared against an unsupervised Isolation Forest anomaly detector on the same selected SPC-enhanced feature table.
 
-| Metric | Logistic Regression | Random Forest | Gradient Boosting |
-|---|---:|---:|---:|
-| Accuracy | 1.000000 | 1.000000 | 1.000000 |
-| Precision | 1.000000 | 1.000000 | 1.000000 |
-| Recall | 1.000000 | 1.000000 | 1.000000 |
-| F1 | 1.000000 | 1.000000 | 1.000000 |
-| ROC-AUC | 1.000000 | 1.000000 | 1.000000 |
-| PR-AUC | 1.000000 | 1.000000 | 1.000000 |
-| Precision@K | 0.500000 | 0.500000 | 0.500000 |
-| Recall@K | 1.000000 | 1.000000 | 1.000000 |
-| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 |
-
-Random Forest feature importance shows that the strongest demo signals are:
-
-| Rank | Feature | Importance |
-|---:|---|---:|
-| 1 | `spc_violation_count` | 0.374099 |
-| 2 | `spc_max_abs_zscore` | 0.369001 |
-| 3 | `sensor_std` | 0.119823 |
-| 4 | `sensor_mean` | 0.103394 |
-
-Gradient Boosting feature importance shows that the strongest demo signals are:
-
-| Rank | Feature | Importance |
-|---:|---|---:|
-| 1 | `spc_max_abs_zscore` | 0.592688 |
-| 2 | `spc_violation_count` | 0.407312 |
+| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest |
+|---|---:|---:|---:|---:|
+| Accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 |
+| Precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 |
+| Recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| F1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 |
+| ROC-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| PR-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| Precision@K | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
+| Recall@K | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 |
 
 Interpretation:
 
-In the current synthetic SPC demo, all three supervised models achieve perfect headline test metrics because the selected SPC features already separate the injected anomaly mechanism. This validates the model family comparison workflow, not real-world fab performance. Tree-based models still add value by providing feature importance.
+In the current controlled synthetic SPC demo, the supervised models achieve perfect headline test metrics because the selected SPC features strongly encode the injected anomaly mechanism. Isolation Forest also ranks all held-out failed lots at the top, but its default anomaly threshold creates more false alarms. This demonstrates a useful manufacturing-style trade-off: unsupervised anomaly detection can help when labels are rare or delayed, but it needs threshold tuning and false-alarm budget control before operational use.
 
 ---
 
@@ -418,6 +403,7 @@ This alert is triggered because both feature drift and model performance degrada
 | `reports/model_family_comparison_report.md` | Compares Logistic Regression and Random Forest on selected SPC features |
 | `reports/random_forest_report.md` | Documents Random Forest metrics and feature importance |
 | `reports/gradient_boosting_report.md` | Documents Gradient Boosting metrics and feature importance |
+| `reports/isolation_forest_report.md` | Documents unsupervised Isolation Forest anomaly detection results |
 | `reports/monitoring_alert_summary.md` | Engineer-readable combined alert summary |
 
 ---
@@ -446,7 +432,7 @@ These limitations are documented intentionally to prevent overclaiming.
 Planned next steps:
 
 - Add threshold recalibration experiments.
-- Add Isolation Forest anomaly detection baseline.
+- Add Isolation Forest threshold tuning and false-alarm budget analysis.
 - Add unsupervised anomaly detection models.
 - Add prediction-score drift monitoring.
 - Add model explainability.
