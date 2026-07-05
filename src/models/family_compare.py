@@ -1,15 +1,16 @@
 """
-Model family comparison utilities for WaferWatch.
+Model family and anomaly baseline comparison utilities for WaferWatch.
 
-This module compares three supervised tabular model families on the same
-selected SPC-enhanced feature table:
+This module compares four model families on the same selected SPC-enhanced
+feature table:
 
 1. Logistic Regression
 2. Random Forest
 3. Gradient Boosting
+4. Isolation Forest
 
-The goal is to compare model families under the same data split, feature table,
-and evaluation metric set.
+The first three models are supervised classifiers. Isolation Forest is an
+unsupervised anomaly detection baseline fitted on normal-reference training lots.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from typing import Any
 
 from src.models.evaluate import evaluate_saved_model
 from src.models.gradient_boosting import run_gradient_boosting_baseline
+from src.models.isolation_forest import run_isolation_forest_baseline
 from src.models.random_forest import run_random_forest_baseline
 from src.models.train import train_from_feature_table
 from src.utils.config import REPORTS_DIR, ensure_directories_exist
@@ -81,66 +83,82 @@ def calculate_differences(
     return differences
 
 
+def format_metric(value: Any) -> str:
+    """
+    Format metric value for Markdown tables.
+    """
+
+    if value is None:
+        return "None"
+
+    return f"{value:.6f}"
+
+
 def build_markdown_report(report: dict[str, Any]) -> str:
     """
-    Build a Markdown report for the three-model family comparison.
+    Build a Markdown report for the four-model comparison.
     """
 
     lr_metrics = report["models"]["logistic_regression"]["evaluation_metrics"]
     rf_metrics = report["models"]["random_forest"]["evaluation_metrics"]
     gb_metrics = report["models"]["gradient_boosting"]["evaluation_metrics"]
+    if_metrics = report["models"]["isolation_forest"]["evaluation_metrics"]
 
     rf_minus_lr = report["metric_differences"]["random_forest_minus_logistic_regression"]
     gb_minus_lr = report["metric_differences"]["gradient_boosting_minus_logistic_regression"]
-    gb_minus_rf = report["metric_differences"]["gradient_boosting_minus_random_forest"]
+    if_minus_lr = report["metric_differences"]["isolation_forest_minus_logistic_regression"]
 
     lines: list[str] = []
 
-    lines.append("# WaferWatch Model Family Comparison Report")
+    lines.append("# WaferWatch Model Family and Anomaly Baseline Comparison Report")
     lines.append("")
     lines.append("## 1. Purpose")
     lines.append("")
     lines.append(
-        "This report compares Logistic Regression, Random Forest, and Gradient Boosting on the same selected SPC-enhanced feature table."
+        "This report compares Logistic Regression, Random Forest, Gradient Boosting, and Isolation Forest on the same selected SPC-enhanced feature table."
     )
     lines.append(
-        "The goal is to evaluate whether nonlinear tree-based models improve over the linear baseline in the current controlled synthetic demo."
+        "Logistic Regression, Random Forest, and Gradient Boosting are supervised classifiers. Isolation Forest is an unsupervised anomaly detection baseline fitted only on normal-reference training lots."
     )
     lines.append("")
     lines.append("## 2. Compared Models")
     lines.append("")
-    lines.append("| Model | Feature table | Model file |")
-    lines.append("|---|---|---|")
+    lines.append("| Model | Learning type | Training label usage | Feature table | Model file |")
+    lines.append("|---|---|---|---|---|")
     lines.append(
-        "| Logistic Regression | `demo_spc_selected_feature_table.csv` | `spc_selected_logistic_regression.joblib` |"
+        "| Logistic Regression | Supervised classification | Uses labels during training | `demo_spc_selected_feature_table.csv` | `spc_selected_logistic_regression.joblib` |"
     )
     lines.append(
-        "| Random Forest | `demo_spc_selected_feature_table.csv` | `random_forest_selected_baseline.joblib` |"
+        "| Random Forest | Supervised classification | Uses labels during training | `demo_spc_selected_feature_table.csv` | `random_forest_selected_baseline.joblib` |"
     )
     lines.append(
-        "| Gradient Boosting | `demo_spc_selected_feature_table.csv` | `gradient_boosting_selected_baseline.joblib` |"
+        "| Gradient Boosting | Supervised classification | Uses labels during training | `demo_spc_selected_feature_table.csv` | `gradient_boosting_selected_baseline.joblib` |"
+    )
+    lines.append(
+        "| Isolation Forest | Unsupervised anomaly detection | Labels used only for evaluation | `demo_spc_selected_feature_table.csv` | `isolation_forest_normal_reference.joblib` |"
     )
     lines.append("")
     lines.append("## 3. Main Metrics")
     lines.append("")
-    lines.append("| Metric | Logistic Regression | Random Forest | Gradient Boosting |")
-    lines.append("|---|---:|---:|---:|")
+    lines.append("| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest |")
+    lines.append("|---|---:|---:|---:|---:|")
 
     for metric_name in KEY_METRICS:
-        lr_value = lr_metrics.get(metric_name)
-        rf_value = rf_metrics.get(metric_name)
-        gb_value = gb_metrics.get(metric_name)
-
-        lr_text = "None" if lr_value is None else f"{lr_value:.6f}"
-        rf_text = "None" if rf_value is None else f"{rf_value:.6f}"
-        gb_text = "None" if gb_value is None else f"{gb_value:.6f}"
+        lr_text = format_metric(lr_metrics.get(metric_name))
+        rf_text = format_metric(rf_metrics.get(metric_name))
+        gb_text = format_metric(gb_metrics.get(metric_name))
+        if_text = format_metric(if_metrics.get(metric_name))
 
         lines.append(
-            f"| {metric_name} | {lr_text} | {rf_text} | {gb_text} |"
+            f"| {metric_name} | {lr_text} | {rf_text} | {gb_text} | {if_text} |"
         )
 
     lines.append("")
     lines.append("## 4. Metric Differences")
+    lines.append("")
+    lines.append(
+        "Differences are calculated against the Logistic Regression supervised baseline."
+    )
     lines.append("")
     lines.append("### 4.1 Random Forest minus Logistic Regression")
     lines.append("")
@@ -148,9 +166,9 @@ def build_markdown_report(report: dict[str, Any]) -> str:
     lines.append("|---|---:|")
 
     for metric_name in KEY_METRICS:
-        value = rf_minus_lr.get(metric_name)
-        value_text = "None" if value is None else f"{value:.6f}"
-        lines.append(f"| {metric_name} | {value_text} |")
+        lines.append(
+            f"| {metric_name} | {format_metric(rf_minus_lr.get(metric_name))} |"
+        )
 
     lines.append("")
     lines.append("### 4.2 Gradient Boosting minus Logistic Regression")
@@ -159,20 +177,20 @@ def build_markdown_report(report: dict[str, Any]) -> str:
     lines.append("|---|---:|")
 
     for metric_name in KEY_METRICS:
-        value = gb_minus_lr.get(metric_name)
-        value_text = "None" if value is None else f"{value:.6f}"
-        lines.append(f"| {metric_name} | {value_text} |")
+        lines.append(
+            f"| {metric_name} | {format_metric(gb_minus_lr.get(metric_name))} |"
+        )
 
     lines.append("")
-    lines.append("### 4.3 Gradient Boosting minus Random Forest")
+    lines.append("### 4.3 Isolation Forest minus Logistic Regression")
     lines.append("")
     lines.append("| Metric | Difference |")
     lines.append("|---|---:|")
 
     for metric_name in KEY_METRICS:
-        value = gb_minus_rf.get(metric_name)
-        value_text = "None" if value is None else f"{value:.6f}"
-        lines.append(f"| {metric_name} | {value_text} |")
+        lines.append(
+            f"| {metric_name} | {format_metric(if_minus_lr.get(metric_name))} |"
+        )
 
     lines.append("")
     lines.append("## 5. Random Forest Feature Importance")
@@ -203,7 +221,19 @@ def build_markdown_report(report: dict[str, Any]) -> str:
         )
 
     lines.append("")
-    lines.append("## 7. Interpretation")
+    lines.append("## 7. Isolation Forest Top Suspicious Lots")
+    lines.append("")
+    lines.append("| Rank | Lot ID | True Label | Risk Score | Predicted Label |")
+    lines.append("|---:|---|---:|---:|---:|")
+
+    for row in report["models"]["isolation_forest"]["top_suspicious_lots"]:
+        lines.append(
+            f"| {row['rank']} | `{row['lot_id']}` | {row['true_label']} | "
+            f"{row['risk_score']:.6f} | {row['predicted_label']} |"
+        )
+
+    lines.append("")
+    lines.append("## 8. Interpretation")
     lines.append("")
     lines.append(report["interpretation_note"])
     lines.append("")
@@ -216,7 +246,7 @@ def run_model_family_comparison(
     markdown_file_name: str = "model_family_comparison_report.md",
 ) -> dict[str, Any]:
     """
-    Run three-model family comparison.
+    Run four-model comparison.
     """
 
     ensure_directories_exist()
@@ -255,9 +285,19 @@ def run_model_family_comparison(
         markdown_file_name="gradient_boosting_report.md",
     )
 
+    logger.info("Training and evaluating Isolation Forest anomaly detection baseline.")
+
+    isolation_forest_report = run_isolation_forest_baseline(
+        feature_table_file_name="demo_spc_selected_feature_table.csv",
+        model_file_name="isolation_forest_normal_reference.joblib",
+        report_file_name="isolation_forest_report.json",
+        markdown_file_name="isolation_forest_report.md",
+    )
+
     logistic_metrics = extract_metrics(logistic_evaluation_report)
     random_forest_metrics = extract_metrics(random_forest_report)
     gradient_boosting_metrics = extract_metrics(gradient_boosting_report)
+    isolation_forest_metrics = extract_metrics(isolation_forest_report)
 
     rf_minus_lr = calculate_differences(
         baseline_metrics=logistic_metrics,
@@ -269,23 +309,25 @@ def run_model_family_comparison(
         comparison_metrics=gradient_boosting_metrics,
     )
 
-    gb_minus_rf = calculate_differences(
-        baseline_metrics=random_forest_metrics,
-        comparison_metrics=gradient_boosting_metrics,
+    if_minus_lr = calculate_differences(
+        baseline_metrics=logistic_metrics,
+        comparison_metrics=isolation_forest_metrics,
     )
 
     report: dict[str, Any] = {
-        "comparison_name": "Three-model family comparison",
+        "comparison_name": "Four-model family and anomaly baseline comparison",
         "feature_table": "demo_spc_selected_feature_table.csv",
         "models": {
             "logistic_regression": {
                 "name": "Logistic Regression selected-feature baseline",
+                "learning_type": "supervised_classification",
                 "model_file": "spc_selected_logistic_regression.joblib",
                 "training_report": logistic_training_report,
                 "evaluation_metrics": logistic_metrics,
             },
             "random_forest": {
                 "name": "Random Forest selected-feature baseline",
+                "learning_type": "supervised_classification",
                 "model_file": "random_forest_selected_baseline.joblib",
                 "model_parameters": random_forest_report["model_parameters"],
                 "evaluation_metrics": random_forest_metrics,
@@ -293,26 +335,37 @@ def run_model_family_comparison(
             },
             "gradient_boosting": {
                 "name": "Gradient Boosting selected-feature baseline",
+                "learning_type": "supervised_classification",
                 "model_file": "gradient_boosting_selected_baseline.joblib",
                 "model_parameters": gradient_boosting_report["model_parameters"],
                 "evaluation_metrics": gradient_boosting_metrics,
                 "feature_importance": gradient_boosting_report["feature_importance"],
             },
+            "isolation_forest": {
+                "name": "Isolation Forest normal-reference anomaly detection baseline",
+                "learning_type": "unsupervised_anomaly_detection",
+                "model_file": "isolation_forest_normal_reference.joblib",
+                "model_parameters": isolation_forest_report["model_parameters"],
+                "evaluation_metrics": isolation_forest_metrics,
+                "top_suspicious_lots": isolation_forest_report["top_suspicious_lots"],
+            },
         },
         "metric_differences": {
             "random_forest_minus_logistic_regression": rf_minus_lr,
             "gradient_boosting_minus_logistic_regression": gb_minus_lr,
-            "gradient_boosting_minus_random_forest": gb_minus_rf,
+            "isolation_forest_minus_logistic_regression": if_minus_lr,
         },
         "interpretation_note": (
-            "In the current controlled synthetic SPC demo, Logistic Regression, Random Forest, "
-            "and Gradient Boosting all achieve perfect headline test metrics on the selected "
-            "SPC-enhanced feature table. This indicates that the selected SPC features strongly "
-            "encode the injected anomaly mechanism. The result validates the model comparison "
-            "workflow, but it should not be interpreted as production fab performance. "
-            "The tree-based models add value by providing feature importance: Random Forest uses "
-            "both SPC violation count and maximum absolute SPC z-score, while Gradient Boosting "
-            "places most importance on maximum absolute SPC z-score and SPC violation count."
+            "In the current controlled synthetic SPC demo, the three supervised classifiers "
+            "achieve perfect headline test metrics on the selected SPC-enhanced feature table. "
+            "This suggests that the selected SPC features strongly encode the injected anomaly "
+            "mechanism. Isolation Forest also ranks all held-out failed lots at the top, producing "
+            "perfect ROC-AUC and PR-AUC, but its default anomaly threshold creates more false alarms "
+            "than the supervised models. This is a useful manufacturing-style trade-off: an "
+            "unsupervised anomaly detector can be valuable when labels are rare or delayed, but it "
+            "requires threshold tuning, top-K review, and false-alarm budget control before it can "
+            "be used operationally. These results validate the demo workflow and should not be "
+            "interpreted as production fab performance."
         ),
     }
 
@@ -331,8 +384,8 @@ def run_model_family_comparison(
 
     logger.info("Saved model family comparison report Markdown to: %s", markdown_path)
 
-    print("Three-model family comparison summary")
-    print("-------------------------------------")
+    print("Four-model family comparison summary")
+    print("------------------------------------")
     print("Logistic Regression metrics:")
     print(json.dumps(logistic_metrics, indent=2, ensure_ascii=False))
     print()
@@ -342,13 +395,16 @@ def run_model_family_comparison(
     print("Gradient Boosting metrics:")
     print(json.dumps(gradient_boosting_metrics, indent=2, ensure_ascii=False))
     print()
+    print("Isolation Forest metrics:")
+    print(json.dumps(isolation_forest_metrics, indent=2, ensure_ascii=False))
+    print()
 
     return report
 
 
 def _demo() -> None:
     """
-    Run the three-model family comparison demo.
+    Run the four-model comparison demo.
     """
 
     run_model_family_comparison()

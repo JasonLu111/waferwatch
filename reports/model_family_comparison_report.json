@@ -1,9 +1,10 @@
 {
-  "comparison_name": "Three-model family comparison",
+  "comparison_name": "Four-model family and anomaly baseline comparison",
   "feature_table": "demo_spc_selected_feature_table.csv",
   "models": {
     "logistic_regression": {
       "name": "Logistic Regression selected-feature baseline",
+      "learning_type": "supervised_classification",
       "model_file": "spc_selected_logistic_regression.joblib",
       "training_report": {
         "model_name": "Logistic Regression Baseline",
@@ -56,6 +57,7 @@
     },
     "random_forest": {
       "name": "Random Forest selected-feature baseline",
+      "learning_type": "supervised_classification",
       "model_file": "random_forest_selected_baseline.joblib",
       "model_parameters": {
         "n_estimators": 300,
@@ -112,6 +114,7 @@
     },
     "gradient_boosting": {
       "name": "Gradient Boosting selected-feature baseline",
+      "learning_type": "supervised_classification",
       "model_file": "gradient_boosting_selected_baseline.joblib",
       "model_parameters": {
         "n_estimators": 200,
@@ -166,6 +169,108 @@
           "importance": 0.0
         }
       ]
+    },
+    "isolation_forest": {
+      "name": "Isolation Forest normal-reference anomaly detection baseline",
+      "learning_type": "unsupervised_anomaly_detection",
+      "model_file": "isolation_forest_normal_reference.joblib",
+      "model_parameters": {
+        "n_estimators": 300,
+        "contamination": "auto",
+        "random_state": 42
+      },
+      "evaluation_metrics": {
+        "accuracy": 0.7083333333333334,
+        "precision": 0.4166666666666667,
+        "recall": 1.0,
+        "f1": 0.5882352941176471,
+        "balanced_accuracy": 0.8157894736842105,
+        "matthews_corrcoef": 0.5129891760425771,
+        "roc_auc": 1.0,
+        "pr_auc": 1.0,
+        "precision_at_k": 0.5,
+        "recall_at_k": 1.0,
+        "top_k": 10,
+        "false_alarms_per_100_lots": 29.166666666666668,
+        "confusion_matrix": {
+          "true_negative": 12,
+          "false_positive": 7,
+          "false_negative": 0,
+          "true_positive": 5
+        }
+      },
+      "top_suspicious_lots": [
+        {
+          "rank": 1,
+          "lot_id": "LOT_SPC_024",
+          "true_label": 1,
+          "risk_score": 0.19542804593166996,
+          "predicted_label": 1
+        },
+        {
+          "rank": 2,
+          "lot_id": "LOT_SPC_077",
+          "true_label": 1,
+          "risk_score": 0.16854680866443206,
+          "predicted_label": 1
+        },
+        {
+          "rank": 3,
+          "lot_id": "LOT_SPC_078",
+          "true_label": 1,
+          "risk_score": 0.12409477579930406,
+          "predicted_label": 1
+        },
+        {
+          "rank": 4,
+          "lot_id": "LOT_SPC_027",
+          "true_label": 1,
+          "risk_score": 0.1238117168592926,
+          "predicted_label": 1
+        },
+        {
+          "rank": 5,
+          "lot_id": "LOT_SPC_021",
+          "true_label": 1,
+          "risk_score": 0.09944701937173372,
+          "predicted_label": 1
+        },
+        {
+          "rank": 6,
+          "lot_id": "LOT_SPC_034",
+          "true_label": 0,
+          "risk_score": 0.036979862179549405,
+          "predicted_label": 1
+        },
+        {
+          "rank": 7,
+          "lot_id": "LOT_SPC_025",
+          "true_label": 0,
+          "risk_score": 0.03281304204707325,
+          "predicted_label": 1
+        },
+        {
+          "rank": 8,
+          "lot_id": "LOT_SPC_065",
+          "true_label": 0,
+          "risk_score": 0.025442693874777267,
+          "predicted_label": 1
+        },
+        {
+          "rank": 9,
+          "lot_id": "LOT_SPC_047",
+          "true_label": 0,
+          "risk_score": 0.009712072425116292,
+          "predicted_label": 1
+        },
+        {
+          "rank": 10,
+          "lot_id": "LOT_SPC_003",
+          "true_label": 0,
+          "risk_score": 0.0065379959686865385,
+          "predicted_label": 1
+        }
+      ]
     }
   },
   "metric_differences": {
@@ -195,19 +300,19 @@
       "recall_at_k": 0.0,
       "false_alarms_per_100_lots": 0.0
     },
-    "gradient_boosting_minus_random_forest": {
-      "accuracy": 0.0,
-      "precision": 0.0,
+    "isolation_forest_minus_logistic_regression": {
+      "accuracy": -0.29166666666666663,
+      "precision": -0.5833333333333333,
       "recall": 0.0,
-      "f1": 0.0,
-      "balanced_accuracy": 0.0,
-      "matthews_corrcoef": 0.0,
+      "f1": -0.4117647058823529,
+      "balanced_accuracy": -0.1842105263157895,
+      "matthews_corrcoef": -0.4870108239574229,
       "roc_auc": 0.0,
       "pr_auc": 0.0,
       "precision_at_k": 0.0,
       "recall_at_k": 0.0,
-      "false_alarms_per_100_lots": 0.0
+      "false_alarms_per_100_lots": 29.166666666666668
     }
   },
-  "interpretation_note": "In the current controlled synthetic SPC demo, Logistic Regression, Random Forest, and Gradient Boosting all achieve perfect headline test metrics on the selected SPC-enhanced feature table. This indicates that the selected SPC features strongly encode the injected anomaly mechanism. The result validates the model comparison workflow, but it should not be interpreted as production fab performance. The tree-based models add value by providing feature importance: Random Forest uses both SPC violation count and maximum absolute SPC z-score, while Gradient Boosting places most importance on maximum absolute SPC z-score and SPC violation count."
+  "interpretation_note": "In the current controlled synthetic SPC demo, the three supervised classifiers achieve perfect headline test metrics on the selected SPC-enhanced feature table. This suggests that the selected SPC features strongly encode the injected anomaly mechanism. Isolation Forest also ranks all held-out failed lots at the top, producing perfect ROC-AUC and PR-AUC, but its default anomaly threshold creates more false alarms than the supervised models. This is a useful manufacturing-style trade-off: an unsupervised anomaly detector can be valuable when labels are rare or delayed, but it requires threshold tuning, top-K review, and false-alarm budget control before it can be used operationally. These results validate the demo workflow and should not be interpreted as production fab performance."
 }
