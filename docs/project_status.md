@@ -20,6 +20,7 @@ data validation
 -> Random Forest baseline
 -> Gradient Boosting baseline
 -> Isolation Forest anomaly detection baseline
+-> Isolation Forest threshold tuning
 -> model family comparison
 -> cost-sensitive thresholding
 -> batch prediction
@@ -73,6 +74,7 @@ WaferWatch can currently:
 - Train Random Forest baseline models.
 - Train Gradient Boosting baseline models.
 - Train Isolation Forest anomaly detection baseline.
+- Tune Isolation Forest thresholds under false-alarm budget.
 - Compare Logistic Regression, Random Forest, Gradient Boosting, and Isolation Forest baselines.
 - Generate Random Forest feature importance.
 - Compare aggregate-only, SPC-enhanced, and feature-selected models.
@@ -118,6 +120,23 @@ Interpretation:
 
 Isolation Forest captures all held-out failed lots in this demo but produces more false alarms than the supervised models. This creates a realistic discussion about label scarcity, anomaly ranking, threshold tuning, top-K review, and false-alarm budget control.
 
+### Isolation Forest Threshold Tuning
+
+| Policy | Review Count | Precision | Recall | F1 | False Alarms per 100 Lots |
+|---|---:|---:|---:|---:|---:|
+| default_isolation_forest_threshold | 12 | 0.416667 | 1.000000 | 0.588235 | 29.166667 |
+| top_3_review | 3 | 1.000000 | 0.600000 | 0.750000 | 0.000000 |
+| top_5_review | 5 | 1.000000 | 1.000000 | 1.000000 | 0.000000 |
+| top_8_review | 8 | 0.625000 | 1.000000 | 0.769231 | 12.500000 |
+| top_10_review | 10 | 0.500000 | 1.000000 | 0.666667 | 20.833333 |
+
+Selected policy under a 10 false-alarms-per-100-lots budget:
+
+```text
+top_5_review
+```
+
+This demonstrates that a top-K review policy can convert unsupervised anomaly scores into a practical triage queue while controlling false alarms.
 ### Thresholding Result
 
 | Strategy | Threshold | Total cost |
@@ -167,7 +186,7 @@ The current project is still limited by:
 
 Recommended next steps:
 
-- Add Isolation Forest threshold tuning and false-alarm budget analysis.
+- Add PCA anomaly detection baseline.
 - Add unsupervised anomaly detection baseline.
 - Add prediction-score drift monitoring.
 - Add model explainability.

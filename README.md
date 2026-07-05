@@ -59,6 +59,7 @@ The current implementation includes:
 | Random Forest baseline | Completed |
 | Gradient Boosting baseline | Completed |
 | Isolation Forest baseline | Completed |
+| Isolation Forest threshold tuning | Completed |
 | Calibration analysis | Completed |
 | Cost-sensitive thresholding | Completed |
 | Batch prediction | Completed |
@@ -72,7 +73,7 @@ The current implementation includes:
 
 Planned later modules include:
 
-- Isolation Forest threshold tuning and false-alarm budget analysis
+- PCA anomaly detection baseline
 - Unsupervised anomaly detection
 - Model explainability
 - Evidence-grounded RAG root-cause triage
@@ -297,6 +298,25 @@ Interpretation:
 
 In the current controlled synthetic SPC demo, the supervised models achieve perfect headline test metrics because the selected SPC features strongly encode the injected anomaly mechanism. Isolation Forest also ranks all held-out failed lots at the top, but its default anomaly threshold creates more false alarms. This demonstrates a useful manufacturing-style trade-off: unsupervised anomaly detection can help when labels are rare or delayed, but it needs threshold tuning and false-alarm budget control before operational use.
 
+### 8.3 Isolation Forest Threshold Tuning
+
+Isolation Forest produced strong anomaly ranking performance, but its default decision threshold generated more false alarms than the supervised models. To make the unsupervised workflow more operational, WaferWatch evaluates top-K review and escalation-rate policies.
+
+| Policy | Review Count | Precision | Recall | F1 | False Alarms per 100 Lots | TP | FP | FN | TN |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| default_isolation_forest_threshold | 12 | 0.416667 | 1.000000 | 0.588235 | 29.166667 | 5 | 7 | 0 | 12 |
+| top_3_review | 3 | 1.000000 | 0.600000 | 0.750000 | 0.000000 | 3 | 0 | 2 | 19 |
+| top_5_review | 5 | 1.000000 | 1.000000 | 1.000000 | 0.000000 | 5 | 0 | 0 | 19 |
+| top_8_review | 8 | 0.625000 | 1.000000 | 0.769231 | 12.500000 | 5 | 3 | 0 | 16 |
+| top_10_review | 10 | 0.500000 | 1.000000 | 0.666667 | 20.833333 | 5 | 5 | 0 | 14 |
+
+Selected policy under a 10 false-alarms-per-100-lots budget:
+
+```text
+top_5_review
+```
+
+This selected policy preserves full recall while reducing false alarms to zero in the controlled demo. This result validates the usefulness of top-K review policies for converting anomaly scores into an operational engineer triage queue.
 ---
 
 ## 9. Calibration Analysis
@@ -404,6 +424,7 @@ This alert is triggered because both feature drift and model performance degrada
 | `reports/random_forest_report.md` | Documents Random Forest metrics and feature importance |
 | `reports/gradient_boosting_report.md` | Documents Gradient Boosting metrics and feature importance |
 | `reports/isolation_forest_report.md` | Documents unsupervised Isolation Forest anomaly detection results |
+| `reports/isolation_threshold_report.md` | Documents Isolation Forest threshold tuning and false-alarm budget analysis |
 | `reports/monitoring_alert_summary.md` | Engineer-readable combined alert summary |
 
 ---
@@ -432,7 +453,7 @@ These limitations are documented intentionally to prevent overclaiming.
 Planned next steps:
 
 - Add threshold recalibration experiments.
-- Add Isolation Forest threshold tuning and false-alarm budget analysis.
+- Add PCA anomaly detection baseline.
 - Add unsupervised anomaly detection models.
 - Add prediction-score drift monitoring.
 - Add model explainability.

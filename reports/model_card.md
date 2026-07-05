@@ -330,7 +330,28 @@ Isolation Forest is useful as an unsupervised anomaly detection baseline because
 
 ---
 
-## 13. Calibration Analysis
+## 13. Isolation Forest Threshold Tuning
+
+Isolation Forest is useful when confirmed failure labels are rare or delayed, but its default threshold can generate too many false alarms. WaferWatch therefore evaluates top-K review policies and false-alarm budget constraints.
+
+| Policy | Review Count | Precision | Recall | F1 | False Alarms per 100 Lots |
+|---|---:|---:|---:|---:|---:|
+| default_isolation_forest_threshold | 12 | 0.416667 | 1.000000 | 0.588235 | 29.166667 |
+| top_3_review | 3 | 1.000000 | 0.600000 | 0.750000 | 0.000000 |
+| top_5_review | 5 | 1.000000 | 1.000000 | 1.000000 | 0.000000 |
+| top_8_review | 8 | 0.625000 | 1.000000 | 0.769231 | 12.500000 |
+| top_10_review | 10 | 0.500000 | 1.000000 | 0.666667 | 20.833333 |
+
+Under a budget of 10 false alarms per 100 lots, the selected policy is:
+
+```text
+top_5_review
+```
+
+This policy preserves full recall and avoids false alarms in the controlled synthetic demo. The result should be interpreted as workflow validation, not production performance.
+
+---
+## 14. Calibration Analysis
 
 WaferWatch includes calibration analysis because predicted risk scores are used for cost-sensitive thresholding and engineering escalation decisions.
 
@@ -493,7 +514,7 @@ Current limitations:
 Recommended technical next steps:
 
 - Add threshold recalibration experiments.
-- Add Isolation Forest threshold tuning and false-alarm budget analysis.
+- Add PCA anomaly detection baseline.
 - Add unsupervised anomaly detection.
 - Add prediction-score drift monitoring.
 - Add model retraining trigger logic.
