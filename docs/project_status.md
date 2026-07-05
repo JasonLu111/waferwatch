@@ -185,11 +185,11 @@ Recommended next steps:
 
 ## 7. Suggested Immediate Next Step
 
-    The next best implementation step is:
+The next best implementation step is:
 
-    ```text
-    Isolation Forest threshold tuning and false-alarm budget analysis
-    ```
+
+Isolation Forest threshold tuning and false-alarm budget analysis
+
     Reason:
 
     The project now has Logistic Regression, Random Forest, SPC features, feature selection, thresholding, monitoring, and calibration. The next step is to compare a stronger boosting-style tabular baseline against the current models.
