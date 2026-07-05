@@ -18,6 +18,7 @@ data validation
 -> model comparison
 -> calibration analysis
 -> Random Forest baseline
+-> Gradient Boosting baseline
 -> model family comparison
 -> cost-sensitive thresholding
 -> batch prediction
@@ -69,7 +70,8 @@ WaferWatch can currently:
 - Select stable numeric features for baseline modeling.
 - Train Logistic Regression baseline models.
 - Train Random Forest baseline models.
-- Compare Logistic Regression and Random Forest model families.
+- Train Gradient Boosting baseline models.
+- Compare Logistic Regression, Random Forest, and Gradient Boosting model families.
 - Generate Random Forest feature importance.
 - Compare aggregate-only, SPC-enhanced, and feature-selected models.
 - Evaluate with metrics beyond accuracy.
@@ -101,16 +103,20 @@ Interpretation:
 
 ### Model Family Comparison
 
-| Metric | Logistic Regression | Random Forest | RF - LR |
+| Metric | Logistic Regression | Random Forest | Gradient Boosting |
 |---|---:|---:|---:|
-| Accuracy | 1.000000 | 1.000000 | 0.000000 |
-| Precision | 1.000000 | 1.000000 | 0.000000 |
-| Recall | 1.000000 | 1.000000 | 0.000000 |
-| F1 | 1.000000 | 1.000000 | 0.000000 |
-| PR-AUC | 1.000000 | 1.000000 | 0.000000 |
+| Accuracy | 1.000000 | 1.000000 | 1.000000 |
+| Precision | 1.000000 | 1.000000 | 1.000000 |
+| Recall | 1.000000 | 1.000000 | 1.000000 |
+| F1 | 1.000000 | 1.000000 | 1.000000 |
+| PR-AUC | 1.000000 | 1.000000 | 1.000000 |
+| Precision@K | 0.500000 | 0.500000 | 0.500000 |
+| Recall@K | 1.000000 | 1.000000 | 1.000000 |
 | False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 |
 
-Random Forest feature importance shows that `spc_violation_count` and `spc_max_abs_zscore` are the strongest demo signals.
+Random Forest feature importance highlights `spc_violation_count` and `spc_max_abs_zscore`.
+
+Gradient Boosting feature importance highlights `spc_max_abs_zscore` and `spc_violation_count`.
 
 ### Thresholding Result
 
@@ -143,7 +149,7 @@ The current project is still limited by:
 
 - Synthetic demo data only.
 - Small sample size.
-- Logistic Regression and Random Forest baselines only.
+- Logistic Regression, Random Forest, and Gradient Boosting baselines only.
 - No real production sensor data yet.
 - No real tool, chamber, route, recipe, or maintenance records yet.
 - No real metrology, inspection, or yield labels.
@@ -161,7 +167,7 @@ The current project is still limited by:
 
 Recommended next steps:
 
-- Add gradient boosting baseline.
+- Add Isolation Forest anomaly detection baseline.
 - Add unsupervised anomaly detection baseline.
 - Add prediction-score drift monitoring.
 - Add model explainability.
@@ -182,8 +188,7 @@ Recommended next steps:
     The next best implementation step is:
 
     ```text
-    gradient boosting baseline
-
+Isolation Forest anomaly detection baseline
     Reason:
 
     The project now has Logistic Regression, Random Forest, SPC features, feature selection, thresholding, monitoring, and calibration. The next step is to compare a stronger boosting-style tabular baseline against the current models.
@@ -213,4 +218,6 @@ It is no longer a notebook-only ML idea. It now has:
 - GitHub README
 
 The next stage should deepen model quality, calibration, explainability, and RAG-based root-cause triage.
+
+
 

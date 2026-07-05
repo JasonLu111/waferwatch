@@ -57,6 +57,7 @@ The current implementation includes:
 | Model comparison | Completed |
 | Model family comparison | Completed |
 | Random Forest baseline | Completed |
+| Gradient Boosting baseline | Completed |
 | Calibration analysis | Completed |
 | Cost-sensitive thresholding | Completed |
 | Batch prediction | Completed |
@@ -70,7 +71,7 @@ The current implementation includes:
 
 Planned later modules include:
 
-- Gradient boosting baseline
+- Isolation Forest anomaly detection baseline
 - Unsupervised anomaly detection
 - Model explainability
 - Evidence-grounded RAG root-cause triage
@@ -277,16 +278,18 @@ Important interpretation:
 
 ### 8.2 Model Family Comparison
 
-The selected-feature Logistic Regression baseline was compared against Random Forest on the same selected SPC-enhanced feature table.
+The selected-feature Logistic Regression baseline was compared against Random Forest and Gradient Boosting on the same selected SPC-enhanced feature table.
 
-| Metric | Logistic Regression | Random Forest | RF - LR |
+| Metric | Logistic Regression | Random Forest | Gradient Boosting |
 |---|---:|---:|---:|
-| Accuracy | 1.000000 | 1.000000 | 0.000000 |
-| Precision | 1.000000 | 1.000000 | 0.000000 |
-| Recall | 1.000000 | 1.000000 | 0.000000 |
-| F1 | 1.000000 | 1.000000 | 0.000000 |
-| ROC-AUC | 1.000000 | 1.000000 | 0.000000 |
-| PR-AUC | 1.000000 | 1.000000 | 0.000000 |
+| Accuracy | 1.000000 | 1.000000 | 1.000000 |
+| Precision | 1.000000 | 1.000000 | 1.000000 |
+| Recall | 1.000000 | 1.000000 | 1.000000 |
+| F1 | 1.000000 | 1.000000 | 1.000000 |
+| ROC-AUC | 1.000000 | 1.000000 | 1.000000 |
+| PR-AUC | 1.000000 | 1.000000 | 1.000000 |
+| Precision@K | 0.500000 | 0.500000 | 0.500000 |
+| Recall@K | 1.000000 | 1.000000 | 1.000000 |
 | False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 |
 
 Random Forest feature importance shows that the strongest demo signals are:
@@ -298,9 +301,16 @@ Random Forest feature importance shows that the strongest demo signals are:
 | 3 | `sensor_std` | 0.119823 |
 | 4 | `sensor_mean` | 0.103394 |
 
+Gradient Boosting feature importance shows that the strongest demo signals are:
+
+| Rank | Feature | Importance |
+|---:|---|---:|
+| 1 | `spc_max_abs_zscore` | 0.592688 |
+| 2 | `spc_violation_count` | 0.407312 |
+
 Interpretation:
 
-In the current synthetic SPC demo, Random Forest does not improve headline metrics over Logistic Regression because the selected SPC features already separate the injected anomaly mechanism. Random Forest still adds value by providing nonlinear baseline evidence and feature importance.
+In the current synthetic SPC demo, all three supervised models achieve perfect headline test metrics because the selected SPC features already separate the injected anomaly mechanism. This validates the model family comparison workflow, not real-world fab performance. Tree-based models still add value by providing feature importance.
 
 ---
 
@@ -407,6 +417,7 @@ This alert is triggered because both feature drift and model performance degrada
 | `reports/drift_report.md` | Documents drift and performance monitoring results |
 | `reports/model_family_comparison_report.md` | Compares Logistic Regression and Random Forest on selected SPC features |
 | `reports/random_forest_report.md` | Documents Random Forest metrics and feature importance |
+| `reports/gradient_boosting_report.md` | Documents Gradient Boosting metrics and feature importance |
 | `reports/monitoring_alert_summary.md` | Engineer-readable combined alert summary |
 
 ---
@@ -435,7 +446,7 @@ These limitations are documented intentionally to prevent overclaiming.
 Planned next steps:
 
 - Add threshold recalibration experiments.
-- Add gradient boosting baseline.
+- Add Isolation Forest anomaly detection baseline.
 - Add unsupervised anomaly detection models.
 - Add prediction-score drift monitoring.
 - Add model explainability.

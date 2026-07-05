@@ -303,16 +303,18 @@ The incorrect conclusion would be:
 
 ## 12. Model Family Comparison
 
-WaferWatch now includes a model family comparison between Logistic Regression and Random Forest on the same selected SPC-enhanced feature table.
+WaferWatch now includes a three-model supervised family comparison between Logistic Regression, Random Forest, and Gradient Boosting on the same selected SPC-enhanced feature table.
 
-| Metric | Logistic Regression | Random Forest | RF - LR |
+| Metric | Logistic Regression | Random Forest | Gradient Boosting |
 |---|---:|---:|---:|
-| Accuracy | 1.000000 | 1.000000 | 0.000000 |
-| Precision | 1.000000 | 1.000000 | 0.000000 |
-| Recall | 1.000000 | 1.000000 | 0.000000 |
-| F1 | 1.000000 | 1.000000 | 0.000000 |
-| ROC-AUC | 1.000000 | 1.000000 | 0.000000 |
-| PR-AUC | 1.000000 | 1.000000 | 0.000000 |
+| Accuracy | 1.000000 | 1.000000 | 1.000000 |
+| Precision | 1.000000 | 1.000000 | 1.000000 |
+| Recall | 1.000000 | 1.000000 | 1.000000 |
+| F1 | 1.000000 | 1.000000 | 1.000000 |
+| ROC-AUC | 1.000000 | 1.000000 | 1.000000 |
+| PR-AUC | 1.000000 | 1.000000 | 1.000000 |
+| Precision@K | 0.500000 | 0.500000 | 0.500000 |
+| Recall@K | 1.000000 | 1.000000 | 1.000000 |
 | False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 |
 
 Random Forest feature importance:
@@ -326,9 +328,20 @@ Random Forest feature importance:
 | 5 | `sensor_max` | 0.019614 |
 | 6 | `sensor_min` | 0.014068 |
 
+Gradient Boosting feature importance:
+
+| Rank | Feature | Importance |
+|---:|---|---:|
+| 1 | `spc_max_abs_zscore` | 0.592688 |
+| 2 | `spc_violation_count` | 0.407312 |
+| 3 | `sensor_std` | 0.000000 |
+| 4 | `sensor_mean` | 0.000000 |
+| 5 | `sensor_max` | 0.000000 |
+| 6 | `sensor_min` | 0.000000 |
+
 Interpretation:
 
-In the current controlled synthetic demo, both Logistic Regression and Random Forest achieve perfect test metrics on the selected SPC-enhanced feature table. This suggests that the selected SPC features strongly encode the injected anomaly mechanism. It does not prove production performance. Random Forest additionally provides feature importance, showing that SPC violation count and maximum absolute SPC z-score dominate the demo signal.
+In the current controlled synthetic demo, Logistic Regression, Random Forest, and Gradient Boosting all achieve perfect headline test metrics on the selected SPC-enhanced feature table. This suggests that the selected SPC features strongly encode the injected anomaly mechanism. It does not prove production performance. Tree-based models additionally provide feature importance for engineering interpretation.
 
 ---
 
@@ -480,7 +493,7 @@ Current limitations:
 
 - Synthetic demo data only.
 - Small sample size.
-- Logistic Regression and Random Forest baselines only.
+- Logistic Regression, Random Forest, and Gradient Boosting baselines only.
 - No real equipment, chamber, recipe, maintenance, or process-event data yet.
 - No external validation dataset.
 - No full root-cause retrieval pipeline yet.
@@ -495,7 +508,7 @@ Current limitations:
 Recommended technical next steps:
 
 - Add threshold recalibration experiments.
-- Add gradient boosting baseline.
+- Add Isolation Forest anomaly detection baseline.
 - Add unsupervised anomaly detection.
 - Add prediction-score drift monitoring.
 - Add model retraining trigger logic.
