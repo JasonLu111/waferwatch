@@ -1,0 +1,128 @@
+{
+  "model_name": "Autoencoder-style reconstruction-error anomaly detection baseline",
+  "model_file": "D:\\waferwatch\\models\\autoencoder_anomaly_normal_reference.joblib",
+  "feature_table": "D:\\waferwatch\\data\\processed\\demo_spc_selected_feature_table.csv",
+  "training_rows": 56,
+  "normal_reference_training_rows": 45,
+  "test_rows": 24,
+  "n_features": 6,
+  "feature_columns": [
+    "sensor_mean",
+    "sensor_std",
+    "sensor_min",
+    "sensor_max",
+    "spc_violation_count",
+    "spc_max_abs_zscore"
+  ],
+  "model_parameters": {
+    "hidden_layer_sizes": [
+      4,
+      2,
+      4
+    ],
+    "activation": "relu",
+    "solver": "adam",
+    "alpha": 0.0001,
+    "learning_rate_init": 0.001,
+    "max_iter": 3000,
+    "random_state": 42
+  },
+  "threshold_quantile": 0.95,
+  "reconstruction_error_threshold": 0.4224263306287627,
+  "training_loss": 0.09268940398969244,
+  "n_iter": 227,
+  "evaluation_metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "balanced_accuracy": 1.0,
+    "matthews_corrcoef": 1.0,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "precision_at_k": 0.5,
+    "recall_at_k": 1.0,
+    "top_k": 10,
+    "false_alarms_per_100_lots": 0.0,
+    "confusion_matrix": {
+      "true_negative": 19,
+      "false_positive": 0,
+      "false_negative": 0,
+      "true_positive": 5
+    }
+  },
+  "top_suspicious_lots": [
+    {
+      "rank": 1,
+      "lot_id": "LOT_SPC_077",
+      "true_label": 1,
+      "reconstruction_error": 6.109482413836141,
+      "predicted_label": 1
+    },
+    {
+      "rank": 2,
+      "lot_id": "LOT_SPC_024",
+      "true_label": 1,
+      "reconstruction_error": 6.021886802463906,
+      "predicted_label": 1
+    },
+    {
+      "rank": 3,
+      "lot_id": "LOT_SPC_021",
+      "true_label": 1,
+      "reconstruction_error": 2.3414000791740963,
+      "predicted_label": 1
+    },
+    {
+      "rank": 4,
+      "lot_id": "LOT_SPC_078",
+      "true_label": 1,
+      "reconstruction_error": 2.1051098872822607,
+      "predicted_label": 1
+    },
+    {
+      "rank": 5,
+      "lot_id": "LOT_SPC_027",
+      "true_label": 1,
+      "reconstruction_error": 1.4985706503539742,
+      "predicted_label": 1
+    },
+    {
+      "rank": 6,
+      "lot_id": "LOT_SPC_065",
+      "true_label": 0,
+      "reconstruction_error": 0.3775069368508536,
+      "predicted_label": 0
+    },
+    {
+      "rank": 7,
+      "lot_id": "LOT_SPC_034",
+      "true_label": 0,
+      "reconstruction_error": 0.32188857431416956,
+      "predicted_label": 0
+    },
+    {
+      "rank": 8,
+      "lot_id": "LOT_SPC_025",
+      "true_label": 0,
+      "reconstruction_error": 0.3140936266416114,
+      "predicted_label": 0
+    },
+    {
+      "rank": 9,
+      "lot_id": "LOT_SPC_011",
+      "true_label": 0,
+      "reconstruction_error": 0.3027273342024109,
+      "predicted_label": 0
+    },
+    {
+      "rank": 10,
+      "lot_id": "LOT_SPC_080",
+      "true_label": 0,
+      "reconstruction_error": 0.27244838352358564,
+      "predicted_label": 0
+    }
+  ],
+  "scored_lots_file": "D:\\waferwatch\\data\\processed\\demo_autoencoder_anomaly_scored_lots.csv",
+  "interpretation_note": "This lightweight autoencoder-style baseline uses a neural reconstruction model trained only on normal-reference lots. Lots with high reconstruction error are treated as suspicious. In this controlled synthetic SPC demo, this baseline is used to compare neural reconstruction-error anomaly detection against PCA and Isolation Forest. The result should validate the workflow rather than imply real production performance."
+}
