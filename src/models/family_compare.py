@@ -1,16 +1,18 @@
 """
 Model family and anomaly baseline comparison utilities for WaferWatch.
 
-This module compares four model families on the same selected SPC-enhanced
+This module compares five model families on the same selected SPC-enhanced
 feature table:
 
 1. Logistic Regression
 2. Random Forest
 3. Gradient Boosting
 4. Isolation Forest
+5. PCA reconstruction-error anomaly detection
 
-The first three models are supervised classifiers. Isolation Forest is an
-unsupervised anomaly detection baseline fitted on normal-reference training lots.
+The first three models are supervised classifiers. Isolation Forest and PCA
+are unsupervised anomaly detection baselines fitted on normal-reference
+training lots.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from typing import Any
 from src.models.evaluate import evaluate_saved_model
 from src.models.gradient_boosting import run_gradient_boosting_baseline
 from src.models.isolation_forest import run_isolation_forest_baseline
+from src.models.pca_anomaly import run_pca_anomaly_baseline
 from src.models.random_forest import run_random_forest_baseline
 from src.models.train import train_from_feature_table
 from src.utils.config import REPORTS_DIR, ensure_directories_exist
@@ -94,19 +97,43 @@ def format_metric(value: Any) -> str:
     return f"{value:.6f}"
 
 
+def append_difference_table(
+    lines: list[str],
+    title: str,
+    differences: dict[str, Any],
+) -> None:
+    """
+    Append a metric-difference table to Markdown lines.
+    """
+
+    lines.append(title)
+    lines.append("")
+    lines.append("| Metric | Difference |")
+    lines.append("|---|---:|")
+
+    for metric_name in KEY_METRICS:
+        lines.append(
+            f"| {metric_name} | {format_metric(differences.get(metric_name))} |"
+        )
+
+    lines.append("")
+
+
 def build_markdown_report(report: dict[str, Any]) -> str:
     """
-    Build a Markdown report for the four-model comparison.
+    Build a Markdown report for the five-model comparison.
     """
 
     lr_metrics = report["models"]["logistic_regression"]["evaluation_metrics"]
     rf_metrics = report["models"]["random_forest"]["evaluation_metrics"]
     gb_metrics = report["models"]["gradient_boosting"]["evaluation_metrics"]
     if_metrics = report["models"]["isolation_forest"]["evaluation_metrics"]
+    pca_metrics = report["models"]["pca_anomaly"]["evaluation_metrics"]
 
     rf_minus_lr = report["metric_differences"]["random_forest_minus_logistic_regression"]
     gb_minus_lr = report["metric_differences"]["gradient_boosting_minus_logistic_regression"]
     if_minus_lr = report["metric_differences"]["isolation_forest_minus_logistic_regression"]
+    pca_minus_lr = report["metric_differences"]["pca_anomaly_minus_logistic_regression"]
 
     lines: list[str] = []
 
@@ -115,10 +142,10 @@ def build_markdown_report(report: dict[str, Any]) -> str:
     lines.append("## 1. Purpose")
     lines.append("")
     lines.append(
-        "This report compares Logistic Regression, Random Forest, Gradient Boosting, and Isolation Forest on the same selected SPC-enhanced feature table."
+        "This report compares Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, and PCA anomaly detection on the same selected SPC-enhanced feature table."
     )
     lines.append(
-        "Logistic Regression, Random Forest, and Gradient Boosting are supervised classifiers. Isolation Forest is an unsupervised anomaly detection baseline fitted only on normal-reference training lots."
+        "Logistic Regression, Random Forest, and Gradient Boosting are supervised classifiers. Isolation Forest and PCA anomaly detection are unsupervised baselines fitted only on normal-reference training lots."
     )
     lines.append("")
     lines.append("## 2. Compared Models")
@@ -137,20 +164,24 @@ def build_markdown_report(report: dict[str, Any]) -> str:
     lines.append(
         "| Isolation Forest | Unsupervised anomaly detection | Labels used only for evaluation | `demo_spc_selected_feature_table.csv` | `isolation_forest_normal_reference.joblib` |"
     )
+    lines.append(
+        "| PCA anomaly detection | Unsupervised anomaly detection | Labels used only for evaluation | `demo_spc_selected_feature_table.csv` | `pca_anomaly_normal_reference.joblib` |"
+    )
     lines.append("")
     lines.append("## 3. Main Metrics")
     lines.append("")
-    lines.append("| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest |")
-    lines.append("|---|---:|---:|---:|---:|")
+    lines.append("| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest | PCA Anomaly |")
+    lines.append("|---|---:|---:|---:|---:|---:|")
 
     for metric_name in KEY_METRICS:
         lr_text = format_metric(lr_metrics.get(metric_name))
         rf_text = format_metric(rf_metrics.get(metric_name))
         gb_text = format_metric(gb_metrics.get(metric_name))
         if_text = format_metric(if_metrics.get(metric_name))
+        pca_text = format_metric(pca_metrics.get(metric_name))
 
         lines.append(
-            f"| {metric_name} | {lr_text} | {rf_text} | {gb_text} | {if_text} |"
+            f"| {metric_name} | {lr_text} | {rf_text} | {gb_text} | {if_text} | {pca_text} |"
         )
 
     lines.append("")
@@ -160,39 +191,31 @@ def build_markdown_report(report: dict[str, Any]) -> str:
         "Differences are calculated against the Logistic Regression supervised baseline."
     )
     lines.append("")
-    lines.append("### 4.1 Random Forest minus Logistic Regression")
-    lines.append("")
-    lines.append("| Metric | Difference |")
-    lines.append("|---|---:|")
 
-    for metric_name in KEY_METRICS:
-        lines.append(
-            f"| {metric_name} | {format_metric(rf_minus_lr.get(metric_name))} |"
-        )
+    append_difference_table(
+        lines,
+        "### 4.1 Random Forest minus Logistic Regression",
+        rf_minus_lr,
+    )
 
-    lines.append("")
-    lines.append("### 4.2 Gradient Boosting minus Logistic Regression")
-    lines.append("")
-    lines.append("| Metric | Difference |")
-    lines.append("|---|---:|")
+    append_difference_table(
+        lines,
+        "### 4.2 Gradient Boosting minus Logistic Regression",
+        gb_minus_lr,
+    )
 
-    for metric_name in KEY_METRICS:
-        lines.append(
-            f"| {metric_name} | {format_metric(gb_minus_lr.get(metric_name))} |"
-        )
+    append_difference_table(
+        lines,
+        "### 4.3 Isolation Forest minus Logistic Regression",
+        if_minus_lr,
+    )
 
-    lines.append("")
-    lines.append("### 4.3 Isolation Forest minus Logistic Regression")
-    lines.append("")
-    lines.append("| Metric | Difference |")
-    lines.append("|---|---:|")
+    append_difference_table(
+        lines,
+        "### 4.4 PCA anomaly detection minus Logistic Regression",
+        pca_minus_lr,
+    )
 
-    for metric_name in KEY_METRICS:
-        lines.append(
-            f"| {metric_name} | {format_metric(if_minus_lr.get(metric_name))} |"
-        )
-
-    lines.append("")
     lines.append("## 5. Random Forest Feature Importance")
     lines.append("")
     lines.append("| Rank | Feature | Importance |")
@@ -233,7 +256,19 @@ def build_markdown_report(report: dict[str, Any]) -> str:
         )
 
     lines.append("")
-    lines.append("## 8. Interpretation")
+    lines.append("## 8. PCA Anomaly Top Suspicious Lots")
+    lines.append("")
+    lines.append("| Rank | Lot ID | True Label | Reconstruction Error | Predicted Label |")
+    lines.append("|---:|---|---:|---:|---:|")
+
+    for row in report["models"]["pca_anomaly"]["top_suspicious_lots"]:
+        lines.append(
+            f"| {row['rank']} | `{row['lot_id']}` | {row['true_label']} | "
+            f"{row['reconstruction_error']:.6f} | {row['predicted_label']} |"
+        )
+
+    lines.append("")
+    lines.append("## 9. Interpretation")
     lines.append("")
     lines.append(report["interpretation_note"])
     lines.append("")
@@ -246,7 +281,7 @@ def run_model_family_comparison(
     markdown_file_name: str = "model_family_comparison_report.md",
 ) -> dict[str, Any]:
     """
-    Run four-model comparison.
+    Run five-model comparison.
     """
 
     ensure_directories_exist()
@@ -294,10 +329,20 @@ def run_model_family_comparison(
         markdown_file_name="isolation_forest_report.md",
     )
 
+    logger.info("Training and evaluating PCA anomaly detection baseline.")
+
+    pca_anomaly_report = run_pca_anomaly_baseline(
+        feature_table_file_name="demo_spc_selected_feature_table.csv",
+        model_file_name="pca_anomaly_normal_reference.joblib",
+        report_file_name="pca_anomaly_report.json",
+        markdown_file_name="pca_anomaly_report.md",
+    )
+
     logistic_metrics = extract_metrics(logistic_evaluation_report)
     random_forest_metrics = extract_metrics(random_forest_report)
     gradient_boosting_metrics = extract_metrics(gradient_boosting_report)
     isolation_forest_metrics = extract_metrics(isolation_forest_report)
+    pca_anomaly_metrics = extract_metrics(pca_anomaly_report)
 
     rf_minus_lr = calculate_differences(
         baseline_metrics=logistic_metrics,
@@ -314,8 +359,13 @@ def run_model_family_comparison(
         comparison_metrics=isolation_forest_metrics,
     )
 
+    pca_minus_lr = calculate_differences(
+        baseline_metrics=logistic_metrics,
+        comparison_metrics=pca_anomaly_metrics,
+    )
+
     report: dict[str, Any] = {
-        "comparison_name": "Four-model family and anomaly baseline comparison",
+        "comparison_name": "Five-model family and anomaly baseline comparison",
         "feature_table": "demo_spc_selected_feature_table.csv",
         "models": {
             "logistic_regression": {
@@ -349,23 +399,37 @@ def run_model_family_comparison(
                 "evaluation_metrics": isolation_forest_metrics,
                 "top_suspicious_lots": isolation_forest_report["top_suspicious_lots"],
             },
+            "pca_anomaly": {
+                "name": "PCA reconstruction-error anomaly detection baseline",
+                "learning_type": "unsupervised_anomaly_detection",
+                "model_file": "pca_anomaly_normal_reference.joblib",
+                "pca_components_retained": pca_anomaly_report["pca_components_retained"],
+                "explained_variance_ratio_sum": pca_anomaly_report["explained_variance_ratio_sum"],
+                "threshold_quantile": pca_anomaly_report["threshold_quantile"],
+                "reconstruction_error_threshold": pca_anomaly_report["reconstruction_error_threshold"],
+                "evaluation_metrics": pca_anomaly_metrics,
+                "top_suspicious_lots": pca_anomaly_report["top_suspicious_lots"],
+            },
         },
         "metric_differences": {
             "random_forest_minus_logistic_regression": rf_minus_lr,
             "gradient_boosting_minus_logistic_regression": gb_minus_lr,
             "isolation_forest_minus_logistic_regression": if_minus_lr,
+            "pca_anomaly_minus_logistic_regression": pca_minus_lr,
         },
         "interpretation_note": (
             "In the current controlled synthetic SPC demo, the three supervised classifiers "
             "achieve perfect headline test metrics on the selected SPC-enhanced feature table. "
             "This suggests that the selected SPC features strongly encode the injected anomaly "
-            "mechanism. Isolation Forest also ranks all held-out failed lots at the top, producing "
-            "perfect ROC-AUC and PR-AUC, but its default anomaly threshold creates more false alarms "
-            "than the supervised models. This is a useful manufacturing-style trade-off: an "
-            "unsupervised anomaly detector can be valuable when labels are rare or delayed, but it "
-            "requires threshold tuning, top-K review, and false-alarm budget control before it can "
-            "be used operationally. These results validate the demo workflow and should not be "
-            "interpreted as production fab performance."
+            "mechanism. Isolation Forest also ranks all held-out failed lots at the top, but its "
+            "default anomaly threshold creates more false alarms than the supervised models. "
+            "PCA reconstruction-error anomaly detection also captures all held-out failed lots "
+            "while producing fewer false alarms than the default Isolation Forest threshold. "
+            "This comparison creates a useful manufacturing-style discussion: unsupervised anomaly "
+            "detectors can be valuable when labels are rare or delayed, but each method requires "
+            "threshold tuning, top-K review, and false-alarm budget control before operational use. "
+            "These results validate the demo workflow and should not be interpreted as production "
+            "fab performance."
         ),
     }
 
@@ -384,7 +448,7 @@ def run_model_family_comparison(
 
     logger.info("Saved model family comparison report Markdown to: %s", markdown_path)
 
-    print("Four-model family comparison summary")
+    print("Five-model family comparison summary")
     print("------------------------------------")
     print("Logistic Regression metrics:")
     print(json.dumps(logistic_metrics, indent=2, ensure_ascii=False))
@@ -398,13 +462,16 @@ def run_model_family_comparison(
     print("Isolation Forest metrics:")
     print(json.dumps(isolation_forest_metrics, indent=2, ensure_ascii=False))
     print()
+    print("PCA anomaly detection metrics:")
+    print(json.dumps(pca_anomaly_metrics, indent=2, ensure_ascii=False))
+    print()
 
     return report
 
 
 def _demo() -> None:
     """
-    Run the four-model comparison demo.
+    Run the five-model comparison demo.
     """
 
     run_model_family_comparison()

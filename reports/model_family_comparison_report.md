@@ -2,8 +2,8 @@
 
 ## 1. Purpose
 
-This report compares Logistic Regression, Random Forest, Gradient Boosting, and Isolation Forest on the same selected SPC-enhanced feature table.
-Logistic Regression, Random Forest, and Gradient Boosting are supervised classifiers. Isolation Forest is an unsupervised anomaly detection baseline fitted only on normal-reference training lots.
+This report compares Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, and PCA anomaly detection on the same selected SPC-enhanced feature table.
+Logistic Regression, Random Forest, and Gradient Boosting are supervised classifiers. Isolation Forest and PCA anomaly detection are unsupervised baselines fitted only on normal-reference training lots.
 
 ## 2. Compared Models
 
@@ -13,22 +13,23 @@ Logistic Regression, Random Forest, and Gradient Boosting are supervised classif
 | Random Forest | Supervised classification | Uses labels during training | `demo_spc_selected_feature_table.csv` | `random_forest_selected_baseline.joblib` |
 | Gradient Boosting | Supervised classification | Uses labels during training | `demo_spc_selected_feature_table.csv` | `gradient_boosting_selected_baseline.joblib` |
 | Isolation Forest | Unsupervised anomaly detection | Labels used only for evaluation | `demo_spc_selected_feature_table.csv` | `isolation_forest_normal_reference.joblib` |
+| PCA anomaly detection | Unsupervised anomaly detection | Labels used only for evaluation | `demo_spc_selected_feature_table.csv` | `pca_anomaly_normal_reference.joblib` |
 
 ## 3. Main Metrics
 
-| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest |
-|---|---:|---:|---:|---:|
-| accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 |
-| precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 |
-| recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| f1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 |
-| balanced_accuracy | 1.000000 | 1.000000 | 1.000000 | 0.815789 |
-| matthews_corrcoef | 1.000000 | 1.000000 | 1.000000 | 0.512989 |
-| roc_auc | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| pr_auc | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| precision_at_k | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
-| recall_at_k | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| false_alarms_per_100_lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 |
+| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest | PCA Anomaly |
+|---|---:|---:|---:|---:|---:|
+| accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 | 0.958333 |
+| precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 | 0.833333 |
+| recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| f1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 | 0.909091 |
+| balanced_accuracy | 1.000000 | 1.000000 | 1.000000 | 0.815789 | 0.973684 |
+| matthews_corrcoef | 1.000000 | 1.000000 | 1.000000 | 0.512989 | 0.888523 |
+| roc_auc | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| pr_auc | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| precision_at_k | 0.500000 | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
+| recall_at_k | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| false_alarms_per_100_lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 | 4.166667 |
 
 ## 4. Metric Differences
 
@@ -82,6 +83,22 @@ Differences are calculated against the Logistic Regression supervised baseline.
 | recall_at_k | 0.000000 |
 | false_alarms_per_100_lots | 29.166667 |
 
+### 4.4 PCA anomaly detection minus Logistic Regression
+
+| Metric | Difference |
+|---|---:|
+| accuracy | -0.041667 |
+| precision | -0.166667 |
+| recall | 0.000000 |
+| f1 | -0.090909 |
+| balanced_accuracy | -0.026316 |
+| matthews_corrcoef | -0.111477 |
+| roc_auc | 0.000000 |
+| pr_auc | 0.000000 |
+| precision_at_k | 0.000000 |
+| recall_at_k | 0.000000 |
+| false_alarms_per_100_lots | 4.166667 |
+
 ## 5. Random Forest Feature Importance
 
 | Rank | Feature | Importance |
@@ -119,6 +136,21 @@ Differences are calculated against the Logistic Regression supervised baseline.
 | 9 | `LOT_SPC_047` | 0 | 0.009712 | 1 |
 | 10 | `LOT_SPC_003` | 0 | 0.006538 | 1 |
 
-## 8. Interpretation
+## 8. PCA Anomaly Top Suspicious Lots
 
-In the current controlled synthetic SPC demo, the three supervised classifiers achieve perfect headline test metrics on the selected SPC-enhanced feature table. This suggests that the selected SPC features strongly encode the injected anomaly mechanism. Isolation Forest also ranks all held-out failed lots at the top, producing perfect ROC-AUC and PR-AUC, but its default anomaly threshold creates more false alarms than the supervised models. This is a useful manufacturing-style trade-off: an unsupervised anomaly detector can be valuable when labels are rare or delayed, but it requires threshold tuning, top-K review, and false-alarm budget control before it can be used operationally. These results validate the demo workflow and should not be interpreted as production fab performance.
+| Rank | Lot ID | True Label | Reconstruction Error | Predicted Label |
+|---:|---|---:|---:|---:|
+| 1 | `LOT_SPC_021` | 1 | 0.843782 | 1 |
+| 2 | `LOT_SPC_027` | 1 | 0.823822 | 1 |
+| 3 | `LOT_SPC_078` | 1 | 0.820936 | 1 |
+| 4 | `LOT_SPC_077` | 1 | 0.818217 | 1 |
+| 5 | `LOT_SPC_024` | 1 | 0.816952 | 1 |
+| 6 | `LOT_SPC_063` | 0 | 0.022001 | 1 |
+| 7 | `LOT_SPC_034` | 0 | 0.015658 | 0 |
+| 8 | `LOT_SPC_022` | 0 | 0.015199 | 0 |
+| 9 | `LOT_SPC_015` | 0 | 0.013424 | 0 |
+| 10 | `LOT_SPC_076` | 0 | 0.006717 | 0 |
+
+## 9. Interpretation
+
+In the current controlled synthetic SPC demo, the three supervised classifiers achieve perfect headline test metrics on the selected SPC-enhanced feature table. This suggests that the selected SPC features strongly encode the injected anomaly mechanism. Isolation Forest also ranks all held-out failed lots at the top, but its default anomaly threshold creates more false alarms than the supervised models. PCA reconstruction-error anomaly detection also captures all held-out failed lots while producing fewer false alarms than the default Isolation Forest threshold. This comparison creates a useful manufacturing-style discussion: unsupervised anomaly detectors can be valuable when labels are rare or delayed, but each method requires threshold tuning, top-K review, and false-alarm budget control before operational use. These results validate the demo workflow and should not be interpreted as production fab performance.

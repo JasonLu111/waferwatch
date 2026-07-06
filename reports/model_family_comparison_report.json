@@ -1,5 +1,5 @@
 {
-  "comparison_name": "Four-model family and anomaly baseline comparison",
+  "comparison_name": "Five-model family and anomaly baseline comparison",
   "feature_table": "demo_spc_selected_feature_table.csv",
   "models": {
     "logistic_regression": {
@@ -271,6 +271,107 @@
           "predicted_label": 1
         }
       ]
+    },
+    "pca_anomaly": {
+      "name": "PCA reconstruction-error anomaly detection baseline",
+      "learning_type": "unsupervised_anomaly_detection",
+      "model_file": "pca_anomaly_normal_reference.joblib",
+      "pca_components_retained": 4,
+      "explained_variance_ratio_sum": 0.977925899700418,
+      "threshold_quantile": 0.95,
+      "reconstruction_error_threshold": 0.017723268653951744,
+      "evaluation_metrics": {
+        "accuracy": 0.9583333333333334,
+        "precision": 0.8333333333333334,
+        "recall": 1.0,
+        "f1": 0.9090909090909091,
+        "balanced_accuracy": 0.9736842105263157,
+        "matthews_corrcoef": 0.8885233166386385,
+        "roc_auc": 1.0,
+        "pr_auc": 1.0,
+        "precision_at_k": 0.5,
+        "recall_at_k": 1.0,
+        "top_k": 10,
+        "false_alarms_per_100_lots": 4.166666666666666,
+        "confusion_matrix": {
+          "true_negative": 18,
+          "false_positive": 1,
+          "false_negative": 0,
+          "true_positive": 5
+        }
+      },
+      "top_suspicious_lots": [
+        {
+          "rank": 1,
+          "lot_id": "LOT_SPC_021",
+          "true_label": 1,
+          "reconstruction_error": 0.8437821134501795,
+          "predicted_label": 1
+        },
+        {
+          "rank": 2,
+          "lot_id": "LOT_SPC_027",
+          "true_label": 1,
+          "reconstruction_error": 0.823821556362012,
+          "predicted_label": 1
+        },
+        {
+          "rank": 3,
+          "lot_id": "LOT_SPC_078",
+          "true_label": 1,
+          "reconstruction_error": 0.8209360625670984,
+          "predicted_label": 1
+        },
+        {
+          "rank": 4,
+          "lot_id": "LOT_SPC_077",
+          "true_label": 1,
+          "reconstruction_error": 0.818217352473003,
+          "predicted_label": 1
+        },
+        {
+          "rank": 5,
+          "lot_id": "LOT_SPC_024",
+          "true_label": 1,
+          "reconstruction_error": 0.8169517602453262,
+          "predicted_label": 1
+        },
+        {
+          "rank": 6,
+          "lot_id": "LOT_SPC_063",
+          "true_label": 0,
+          "reconstruction_error": 0.022001029522177154,
+          "predicted_label": 1
+        },
+        {
+          "rank": 7,
+          "lot_id": "LOT_SPC_034",
+          "true_label": 0,
+          "reconstruction_error": 0.015658202604024486,
+          "predicted_label": 0
+        },
+        {
+          "rank": 8,
+          "lot_id": "LOT_SPC_022",
+          "true_label": 0,
+          "reconstruction_error": 0.015199427505107053,
+          "predicted_label": 0
+        },
+        {
+          "rank": 9,
+          "lot_id": "LOT_SPC_015",
+          "true_label": 0,
+          "reconstruction_error": 0.01342403390732413,
+          "predicted_label": 0
+        },
+        {
+          "rank": 10,
+          "lot_id": "LOT_SPC_076",
+          "true_label": 0,
+          "reconstruction_error": 0.006716502165271866,
+          "predicted_label": 0
+        }
+      ]
     }
   },
   "metric_differences": {
@@ -312,7 +413,20 @@
       "precision_at_k": 0.0,
       "recall_at_k": 0.0,
       "false_alarms_per_100_lots": 29.166666666666668
+    },
+    "pca_anomaly_minus_logistic_regression": {
+      "accuracy": -0.04166666666666663,
+      "precision": -0.16666666666666663,
+      "recall": 0.0,
+      "f1": -0.09090909090909094,
+      "balanced_accuracy": -0.026315789473684292,
+      "matthews_corrcoef": -0.11147668336136152,
+      "roc_auc": 0.0,
+      "pr_auc": 0.0,
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "false_alarms_per_100_lots": 4.166666666666666
     }
   },
-  "interpretation_note": "In the current controlled synthetic SPC demo, the three supervised classifiers achieve perfect headline test metrics on the selected SPC-enhanced feature table. This suggests that the selected SPC features strongly encode the injected anomaly mechanism. Isolation Forest also ranks all held-out failed lots at the top, producing perfect ROC-AUC and PR-AUC, but its default anomaly threshold creates more false alarms than the supervised models. This is a useful manufacturing-style trade-off: an unsupervised anomaly detector can be valuable when labels are rare or delayed, but it requires threshold tuning, top-K review, and false-alarm budget control before it can be used operationally. These results validate the demo workflow and should not be interpreted as production fab performance."
+  "interpretation_note": "In the current controlled synthetic SPC demo, the three supervised classifiers achieve perfect headline test metrics on the selected SPC-enhanced feature table. This suggests that the selected SPC features strongly encode the injected anomaly mechanism. Isolation Forest also ranks all held-out failed lots at the top, but its default anomaly threshold creates more false alarms than the supervised models. PCA reconstruction-error anomaly detection also captures all held-out failed lots while producing fewer false alarms than the default Isolation Forest threshold. This comparison creates a useful manufacturing-style discussion: unsupervised anomaly detectors can be valuable when labels are rare or delayed, but each method requires threshold tuning, top-K review, and false-alarm budget control before operational use. These results validate the demo workflow and should not be interpreted as production fab performance."
 }
