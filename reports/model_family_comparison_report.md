@@ -2,8 +2,8 @@
 
 ## 1. Purpose
 
-This report compares Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, and PCA anomaly detection on the same selected SPC-enhanced feature table.
-Logistic Regression, Random Forest, and Gradient Boosting are supervised classifiers. Isolation Forest and PCA anomaly detection are unsupervised baselines fitted only on normal-reference training lots.
+This report compares Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, PCA anomaly detection, and Autoencoder-style anomaly detection on the same selected SPC-enhanced feature table.
+Logistic Regression, Random Forest, and Gradient Boosting are supervised classifiers. Isolation Forest, PCA anomaly detection, and Autoencoder-style anomaly detection are unsupervised baselines fitted only on normal-reference training lots.
 
 ## 2. Compared Models
 
@@ -14,22 +14,23 @@ Logistic Regression, Random Forest, and Gradient Boosting are supervised classif
 | Gradient Boosting | Supervised classification | Uses labels during training | `demo_spc_selected_feature_table.csv` | `gradient_boosting_selected_baseline.joblib` |
 | Isolation Forest | Unsupervised anomaly detection | Labels used only for evaluation | `demo_spc_selected_feature_table.csv` | `isolation_forest_normal_reference.joblib` |
 | PCA anomaly detection | Unsupervised anomaly detection | Labels used only for evaluation | `demo_spc_selected_feature_table.csv` | `pca_anomaly_normal_reference.joblib` |
+| Autoencoder-style anomaly detection | Unsupervised anomaly detection | Labels used only for evaluation | `demo_spc_selected_feature_table.csv` | `autoencoder_anomaly_normal_reference.joblib` |
 
 ## 3. Main Metrics
 
-| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest | PCA Anomaly |
-|---|---:|---:|---:|---:|---:|
-| accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 | 0.958333 |
-| precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 | 0.833333 |
-| recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| f1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 | 0.909091 |
-| balanced_accuracy | 1.000000 | 1.000000 | 1.000000 | 0.815789 | 0.973684 |
-| matthews_corrcoef | 1.000000 | 1.000000 | 1.000000 | 0.512989 | 0.888523 |
-| roc_auc | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| pr_auc | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| precision_at_k | 0.500000 | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
-| recall_at_k | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| false_alarms_per_100_lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 | 4.166667 |
+| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest | PCA Anomaly | Autoencoder |
+|---|---:|---:|---:|---:|---:|---:|
+| accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 | 0.958333 | 1.000000 |
+| precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 | 0.833333 | 1.000000 |
+| recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| f1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 | 0.909091 | 1.000000 |
+| balanced_accuracy | 1.000000 | 1.000000 | 1.000000 | 0.815789 | 0.973684 | 1.000000 |
+| matthews_corrcoef | 1.000000 | 1.000000 | 1.000000 | 0.512989 | 0.888523 | 1.000000 |
+| roc_auc | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| pr_auc | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| precision_at_k | 0.500000 | 0.500000 | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
+| recall_at_k | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| false_alarms_per_100_lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 | 4.166667 | 0.000000 |
 
 ## 4. Metric Differences
 
@@ -99,6 +100,22 @@ Differences are calculated against the Logistic Regression supervised baseline.
 | recall_at_k | 0.000000 |
 | false_alarms_per_100_lots | 4.166667 |
 
+### 4.5 Autoencoder anomaly detection minus Logistic Regression
+
+| Metric | Difference |
+|---|---:|
+| accuracy | 0.000000 |
+| precision | 0.000000 |
+| recall | 0.000000 |
+| f1 | 0.000000 |
+| balanced_accuracy | 0.000000 |
+| matthews_corrcoef | 0.000000 |
+| roc_auc | 0.000000 |
+| pr_auc | 0.000000 |
+| precision_at_k | 0.000000 |
+| recall_at_k | 0.000000 |
+| false_alarms_per_100_lots | 0.000000 |
+
 ## 5. Random Forest Feature Importance
 
 | Rank | Feature | Importance |
@@ -151,6 +168,21 @@ Differences are calculated against the Logistic Regression supervised baseline.
 | 9 | `LOT_SPC_015` | 0 | 0.013424 | 0 |
 | 10 | `LOT_SPC_076` | 0 | 0.006717 | 0 |
 
-## 9. Interpretation
+## 9. Autoencoder Anomaly Top Suspicious Lots
 
-In the current controlled synthetic SPC demo, the three supervised classifiers achieve perfect headline test metrics on the selected SPC-enhanced feature table. This suggests that the selected SPC features strongly encode the injected anomaly mechanism. Isolation Forest also ranks all held-out failed lots at the top, but its default anomaly threshold creates more false alarms than the supervised models. PCA reconstruction-error anomaly detection also captures all held-out failed lots while producing fewer false alarms than the default Isolation Forest threshold. This comparison creates a useful manufacturing-style discussion: unsupervised anomaly detectors can be valuable when labels are rare or delayed, but each method requires threshold tuning, top-K review, and false-alarm budget control before operational use. These results validate the demo workflow and should not be interpreted as production fab performance.
+| Rank | Lot ID | True Label | Reconstruction Error | Predicted Label |
+|---:|---|---:|---:|---:|
+| 1 | `LOT_SPC_077` | 1 | 6.109482 | 1 |
+| 2 | `LOT_SPC_024` | 1 | 6.021887 | 1 |
+| 3 | `LOT_SPC_021` | 1 | 2.341400 | 1 |
+| 4 | `LOT_SPC_078` | 1 | 2.105110 | 1 |
+| 5 | `LOT_SPC_027` | 1 | 1.498571 | 1 |
+| 6 | `LOT_SPC_065` | 0 | 0.377507 | 0 |
+| 7 | `LOT_SPC_034` | 0 | 0.321889 | 0 |
+| 8 | `LOT_SPC_025` | 0 | 0.314094 | 0 |
+| 9 | `LOT_SPC_011` | 0 | 0.302727 | 0 |
+| 10 | `LOT_SPC_080` | 0 | 0.272448 | 0 |
+
+## 10. Interpretation
+
+In the current controlled synthetic SPC demo, the three supervised classifiers achieve perfect headline test metrics on the selected SPC-enhanced feature table. This suggests that the selected SPC features strongly encode the injected anomaly mechanism. Isolation Forest also ranks all held-out failed lots at the top, but its default anomaly threshold creates more false alarms than the supervised models. PCA reconstruction-error anomaly detection captures all held-out failed lots while producing fewer false alarms than the default Isolation Forest threshold. The Autoencoder-style reconstruction model also captures all held-out failed lots and produces no false alarms in this controlled demo. This comparison creates a useful manufacturing-style discussion: unsupervised anomaly detectors can be valuable when labels are rare or delayed, but each method requires threshold tuning, top-K review, false-alarm budget control, and careful validation before operational use. These results validate the demo workflow and should not be interpreted as production fab performance.
