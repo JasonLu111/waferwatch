@@ -544,7 +544,7 @@ Current limitations:
 Recommended technical next steps:
 
 - Add threshold recalibration experiments.
-- Add repeated-seed robustness experiments.
+- Add evidence-grounded root-cause triage module.
 - Add unsupervised anomaly detection.
 - Add prediction-score drift monitoring.
 - Add model retraining trigger logic.
@@ -580,4 +580,34 @@ data validation
 The current model card documents the system as a controlled demo. The pipeline is not production-ready, but it demonstrates the architecture, evaluation discipline, and monitoring logic expected of a serious manufacturing anomaly monitoring project.
 
 
+
+
+
+## 15. Repeated-Seed Robustness Experiments
+
+WaferWatch repeats the main six-model baseline comparison across multiple random seeds to test split sensitivity.
+
+| Item | Value |
+|---|---:|
+| Random seeds | 5 |
+| Models per seed | 6 |
+| Total result rows | 30 |
+| Split | Stratified 70 percent train / 30 percent test |
+
+Aggregate results across seeds:
+
+| Model | Precision mean | Precision std | Recall mean | Recall std | F1 mean | F1 std | False alarms mean | False alarms std |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Logistic Regression | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 0.000000 | 0.000000 |
+| Random Forest | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 0.000000 | 0.000000 |
+| Gradient Boosting | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 0.000000 | 0.000000 |
+| Isolation Forest | 0.393322 | 0.060736 | 1.000000 | 0.000000 | 0.562314 | 0.065064 | 33.333333 | 9.771699 |
+| PCA Anomaly | 0.660354 | 0.169140 | 1.000000 | 0.000000 | 0.785340 | 0.124143 | 12.500000 | 8.838835 |
+| Autoencoder Anomaly | 0.763492 | 0.164995 | 1.000000 | 0.000000 | 0.858009 | 0.105647 | 7.500000 | 6.180165 |
+
+Interpretation:
+
+Repeated-seed evaluation makes the model comparison more defensible. In this controlled demo, supervised baselines remain stable across splits. Unsupervised anomaly detectors maintain recall but show higher variance in precision and false alarms, reinforcing the need for threshold tuning and false-alarm budget control.
+
+---
 

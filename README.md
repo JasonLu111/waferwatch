@@ -63,6 +63,7 @@ The current implementation includes:
 | PCA anomaly detection baseline | Completed |
 | Autoencoder anomaly detection baseline | Completed |
 | Robustness and ablation experiments | Completed |
+| Repeated-seed robustness experiments | Completed |
 | Calibration analysis | Completed |
 | Cost-sensitive thresholding | Completed |
 | Batch prediction | Completed |
@@ -76,7 +77,7 @@ The current implementation includes:
 
 Planned later modules include:
 
-- Repeated-seed robustness experiments
+- Evidence-grounded root-cause triage module
 - Unsupervised anomaly detection
 - Model explainability
 - Evidence-grounded RAG root-cause triage
@@ -328,7 +329,33 @@ Key finding:
 
 When all SPC features are removed, supervised models and reconstruction-error anomaly detectors no longer remain uniformly perfect. This is useful because it shows that the strong headline results are driven by meaningful engineered SPC signals rather than being treated as unexplained perfect metrics.
 
-### 8.5 Isolation Forest Threshold Tuning
+### 8.5 Repeated-Seed Robustness Experiments
+
+WaferWatch now repeats the main six-model baseline comparison under multiple random seeds to test whether conclusions depend on one lucky train-test split.
+
+| Item | Value |
+|---|---:|
+| Random seeds | 5 |
+| Models per seed | 6 |
+| Total result rows | 30 |
+| Train-test split | Stratified 70 percent train / 30 percent test |
+
+Aggregate results across seeds:
+
+| Model | Precision mean | Precision std | Recall mean | Recall std | F1 mean | F1 std | False alarms mean | False alarms std |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Logistic Regression | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 0.000000 | 0.000000 |
+| Random Forest | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 0.000000 | 0.000000 |
+| Gradient Boosting | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 1.000000 | 0.000000 | 0.000000 | 0.000000 |
+| Isolation Forest | 0.393322 | 0.060736 | 1.000000 | 0.000000 | 0.562314 | 0.065064 | 33.333333 | 9.771699 |
+| PCA Anomaly | 0.660354 | 0.169140 | 1.000000 | 0.000000 | 0.785340 | 0.124143 | 12.500000 | 8.838835 |
+| Autoencoder Anomaly | 0.763492 | 0.164995 | 1.000000 | 0.000000 | 0.858009 | 0.105647 | 7.500000 | 6.180165 |
+
+Key finding:
+
+Across repeated train-test splits, the supervised baselines remain stable in this controlled demo. The unsupervised anomaly detectors maintain high recall but show split-sensitive precision and false-alarm behavior. This supports the project argument that unsupervised anomaly detection can be valuable when labels are rare, but threshold control and false-alarm budgeting are operationally important.
+
+### 8.6 Isolation Forest Threshold Tuning
 
 Isolation Forest produced strong anomaly ranking performance, but its default decision threshold generated more false alarms than the supervised models. To make the unsupervised workflow more operational, WaferWatch evaluates top-K review and escalation-rate policies.
 
@@ -458,6 +485,7 @@ This alert is triggered because both feature drift and model performance degrada
 | `reports/pca_anomaly_report.md` | Documents PCA reconstruction-error anomaly detection results |
 | `reports/autoencoder_anomaly_report.md` | Documents autoencoder-style reconstruction-error anomaly detection results |
 | `reports/robustness_ablation_report.md` | Documents feature ablation and anomaly severity stress-test results |
+| `reports/repeated_seed_robustness_report.md` | Documents repeated-seed robustness results across multiple train-test splits |
 | `reports/monitoring_alert_summary.md` | Engineer-readable combined alert summary |
 
 ---
@@ -486,7 +514,7 @@ These limitations are documented intentionally to prevent overclaiming.
 Planned next steps:
 
 - Add threshold recalibration experiments.
-- Add repeated-seed robustness experiments.
+- Add evidence-grounded root-cause triage module.
 - Add unsupervised anomaly detection models.
 - Add prediction-score drift monitoring.
 - Add model explainability.
