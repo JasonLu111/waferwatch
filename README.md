@@ -60,6 +60,7 @@ The current implementation includes:
 | Gradient Boosting baseline | Completed |
 | Isolation Forest baseline | Completed |
 | Isolation Forest threshold tuning | Completed |
+| PCA anomaly detection baseline | Completed |
 | Calibration analysis | Completed |
 | Cost-sensitive thresholding | Completed |
 | Batch prediction | Completed |
@@ -73,7 +74,7 @@ The current implementation includes:
 
 Planned later modules include:
 
-- PCA anomaly detection baseline
+- Autoencoder anomaly detection baseline
 - Unsupervised anomaly detection
 - Model explainability
 - Evidence-grounded RAG root-cause triage
@@ -280,23 +281,23 @@ Important interpretation:
 
 ### 8.2 Model Family and Anomaly Baseline Comparison
 
-The selected-feature supervised baselines were compared against an unsupervised Isolation Forest anomaly detector on the same selected SPC-enhanced feature table.
+The selected-feature supervised baselines were compared against two unsupervised anomaly detection baselines on the same selected SPC-enhanced feature table.
 
-| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest |
-|---|---:|---:|---:|---:|
-| Accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 |
-| Precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 |
-| Recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| F1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 |
-| ROC-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| PR-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| Precision@K | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
-| Recall@K | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 |
+| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest | PCA Anomaly |
+|---|---:|---:|---:|---:|---:|
+| Accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 | 0.958333 |
+| Precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 | 0.833333 |
+| Recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| F1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 | 0.909091 |
+| ROC-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| PR-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| Precision@K | 0.500000 | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
+| Recall@K | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 | 4.166667 |
 
 Interpretation:
 
-In the current controlled synthetic SPC demo, the supervised models achieve perfect headline test metrics because the selected SPC features strongly encode the injected anomaly mechanism. Isolation Forest also ranks all held-out failed lots at the top, but its default anomaly threshold creates more false alarms. This demonstrates a useful manufacturing-style trade-off: unsupervised anomaly detection can help when labels are rare or delayed, but it needs threshold tuning and false-alarm budget control before operational use.
+In the current controlled synthetic SPC demo, the supervised models achieve perfect headline test metrics because the selected SPC features strongly encode the injected anomaly mechanism. Isolation Forest also captures all held-out failed lots, but its default threshold creates more false alarms. PCA reconstruction-error anomaly detection also captures all held-out failed lots while producing fewer false alarms than default Isolation Forest. This creates a useful comparison between supervised learning, tree-based anomaly detection, and reconstruction-error anomaly detection.
 
 ### 8.3 Isolation Forest Threshold Tuning
 
@@ -425,6 +426,7 @@ This alert is triggered because both feature drift and model performance degrada
 | `reports/gradient_boosting_report.md` | Documents Gradient Boosting metrics and feature importance |
 | `reports/isolation_forest_report.md` | Documents unsupervised Isolation Forest anomaly detection results |
 | `reports/isolation_threshold_report.md` | Documents Isolation Forest threshold tuning and false-alarm budget analysis |
+| `reports/pca_anomaly_report.md` | Documents PCA reconstruction-error anomaly detection results |
 | `reports/monitoring_alert_summary.md` | Engineer-readable combined alert summary |
 
 ---
@@ -453,7 +455,7 @@ These limitations are documented intentionally to prevent overclaiming.
 Planned next steps:
 
 - Add threshold recalibration experiments.
-- Add PCA anomaly detection baseline.
+- Add Autoencoder anomaly detection baseline.
 - Add unsupervised anomaly detection models.
 - Add prediction-score drift monitoring.
 - Add model explainability.
