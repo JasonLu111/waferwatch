@@ -303,7 +303,7 @@ The incorrect conclusion would be:
 
 ## 12. Model Family and Anomaly Baseline Comparison
 
-WaferWatch now includes a five-model comparison between three supervised classifiers and two unsupervised anomaly detectors.
+WaferWatch now includes a six-model comparison between three supervised classifiers and three unsupervised anomaly detectors.
 
 | Model | Learning type | Label usage |
 |---|---|---|
@@ -312,22 +312,25 @@ WaferWatch now includes a five-model comparison between three supervised classif
 | Gradient Boosting | Supervised classification | Labels used during training |
 | Isolation Forest | Unsupervised anomaly detection | Labels used only for evaluation |
 | PCA anomaly detection | Unsupervised anomaly detection | Labels used only for evaluation |
+| Autoencoder-style anomaly detection | Unsupervised anomaly detection | Labels used only for evaluation |
 
-| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest | PCA Anomaly |
-|---|---:|---:|---:|---:|---:|
-| Accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 | 0.958333 |
-| Precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 | 0.833333 |
-| Recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| F1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 | 0.909091 |
-| ROC-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| PR-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| Precision@K | 0.500000 | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
-| Recall@K | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 | 4.166667 |
+| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest | PCA Anomaly | Autoencoder |
+|---|---:|---:|---:|---:|---:|---:|
+| Accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 | 0.958333 | 1.000000 |
+| Precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 | 0.833333 | 1.000000 |
+| Recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| F1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 | 0.909091 | 1.000000 |
+| ROC-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| PR-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| Precision@K | 0.500000 | 0.500000 | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
+| Recall@K | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 | 4.166667 | 0.000000 |
 
 Interpretation:
 
-Isolation Forest and PCA anomaly detection are useful unsupervised baselines because they do not require confirmed failure labels during fitting. In this demo, both unsupervised methods capture all held-out failed lots. PCA produces fewer false alarms than the default Isolation Forest threshold, while supervised models remain strongest under the controlled synthetic setup. These results validate the model comparison workflow, not production performance.
+Isolation Forest, PCA anomaly detection, and Autoencoder-style anomaly detection are useful unsupervised baselines because they do not require confirmed failure labels during fitting. In this demo, all three unsupervised methods capture all held-out failed lots, but their false-alarm behavior differs sharply. Isolation Forest has the highest false-alarm burden under its default threshold, PCA reduces false alarms, and the autoencoder-style reconstruction model produces no false alarms in this controlled setup.
+
+These results validate the model comparison workflow, not production performance.
 
 ---
 
@@ -500,7 +503,7 @@ Current limitations:
 
 - Synthetic demo data only.
 - Small sample size.
-- Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, and PCA anomaly detection baselines only.
+- Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, PCA anomaly detection, and Autoencoder-style anomaly detection baselines only.
 - No real equipment, chamber, recipe, maintenance, or process-event data yet.
 - No external validation dataset.
 - No full root-cause retrieval pipeline yet.
@@ -515,7 +518,7 @@ Current limitations:
 Recommended technical next steps:
 
 - Add threshold recalibration experiments.
-- Add Autoencoder anomaly detection baseline.
+- Add robustness and ablation experiments.
 - Add unsupervised anomaly detection.
 - Add prediction-score drift monitoring.
 - Add model retraining trigger logic.

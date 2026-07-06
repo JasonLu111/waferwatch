@@ -22,6 +22,7 @@ data validation
 -> Isolation Forest anomaly detection baseline
 -> Isolation Forest threshold tuning
 -> PCA anomaly detection baseline
+-> Autoencoder anomaly detection baseline
 -> model family comparison
 -> cost-sensitive thresholding
 -> batch prediction
@@ -77,7 +78,8 @@ WaferWatch can currently:
 - Train Isolation Forest anomaly detection baseline.
 - Tune Isolation Forest thresholds under false-alarm budget.
 - Train PCA anomaly detection baseline.
-- Compare Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, and PCA anomaly detection baselines.
+- Train autoencoder-style anomaly detection baseline.
+- Compare Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, PCA anomaly detection, and Autoencoder-style anomaly detection baselines.
 - Generate Random Forest feature importance.
 - Compare aggregate-only, SPC-enhanced, and feature-selected models.
 - Evaluate with metrics beyond accuracy.
@@ -109,18 +111,18 @@ Interpretation:
 
 ### Model Family and Anomaly Baseline Comparison
 
-| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest | PCA Anomaly |
-|---|---:|---:|---:|---:|---:|
-| Accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 | 0.958333 |
-| Precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 | 0.833333 |
-| Recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| F1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 | 0.909091 |
-| PR-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| Precision@K | 0.500000 | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
-| Recall@K | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
-| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 | 4.166667 |
+| Metric | Logistic Regression | Random Forest | Gradient Boosting | Isolation Forest | PCA Anomaly | Autoencoder |
+|---|---:|---:|---:|---:|---:|---:|
+| Accuracy | 1.000000 | 1.000000 | 1.000000 | 0.708333 | 0.958333 | 1.000000 |
+| Precision | 1.000000 | 1.000000 | 1.000000 | 0.416667 | 0.833333 | 1.000000 |
+| Recall | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| F1 | 1.000000 | 1.000000 | 1.000000 | 0.588235 | 0.909091 | 1.000000 |
+| PR-AUC | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| Precision@K | 0.500000 | 0.500000 | 0.500000 | 0.500000 | 0.500000 | 0.500000 |
+| Recall@K | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 1.000000 |
+| False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 | 4.166667 | 0.000000 |
 
-PCA anomaly detection captures all held-out failed lots while producing fewer false alarms than default Isolation Forest in the controlled demo. This strengthens the comparison between supervised classification, tree-based anomaly detection, and reconstruction-error anomaly detection.
+Autoencoder-style anomaly detection captures all held-out failed lots and produces no false alarms in the controlled demo. Together with Isolation Forest and PCA anomaly detection, it strengthens the unsupervised anomaly detection comparison.
 
 ### Isolation Forest Threshold Tuning
 
@@ -170,7 +172,7 @@ The current project is still limited by:
 
 - Synthetic demo data only.
 - Small sample size.
-- Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, and PCA anomaly detection baselines only.
+- Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, PCA anomaly detection, and Autoencoder-style anomaly detection baselines only.
 - No real production sensor data yet.
 - No real tool, chamber, route, recipe, or maintenance records yet.
 - No real metrology, inspection, or yield labels.
@@ -188,7 +190,7 @@ The current project is still limited by:
 
 Recommended next steps:
 
-- Add Autoencoder anomaly detection baseline.
+- Add robustness and ablation experiments.
 - Add unsupervised anomaly detection baseline.
 - Add prediction-score drift monitoring.
 - Add model explainability.
