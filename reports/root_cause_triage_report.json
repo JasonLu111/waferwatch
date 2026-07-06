@@ -1,0 +1,721 @@
+{
+  "module_name": "Evidence-grounded root-cause triage",
+  "feature_table": "D:\\waferwatch\\data\\processed\\demo_spc_selected_feature_table.csv",
+  "label_column": "pass_fail_label",
+  "lot_id_column": "lot_id",
+  "n_rows": 80,
+  "n_features": 6,
+  "feature_columns": [
+    "sensor_mean",
+    "sensor_std",
+    "sensor_min",
+    "sensor_max",
+    "spc_violation_count",
+    "spc_max_abs_zscore"
+  ],
+  "normal_reference_rows": 64,
+  "triage_lots": 10,
+  "top_features_per_lot": 3,
+  "cause_hypothesis_table_file": "D:\\waferwatch\\data\\processed\\demo_cause_hypothesis_table.csv",
+  "feature_contribution_file": "D:\\waferwatch\\data\\processed\\demo_root_cause_feature_contributions.csv",
+  "lot_summary_file": "D:\\waferwatch\\data\\processed\\demo_root_cause_triage_lot_summary.csv",
+  "cause_hypothesis_table": [
+    {
+      "feature": "sensor_mean",
+      "cause_family": "Process center shift",
+      "hypothesis": "The average sensor behavior may have shifted away from the normal reference pattern.",
+      "evidence_type": "Sensor mean evidence",
+      "recommended_review": "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+    },
+    {
+      "feature": "sensor_std",
+      "cause_family": "Process instability",
+      "hypothesis": "The lot may show higher within-lot sensor variability or unstable process behavior.",
+      "evidence_type": "Sensor variation evidence",
+      "recommended_review": "Review tool stability, run-to-run variation, maintenance history, and abnormal sensor fluctuation windows."
+    },
+    {
+      "feature": "sensor_min",
+      "cause_family": "Low-side excursion",
+      "hypothesis": "The lot may contain unusually low sensor readings relative to normal-reference behavior.",
+      "evidence_type": "Sensor low-tail evidence",
+      "recommended_review": "Review possible under-processing, sensor dropout, or low-side transient events."
+    },
+    {
+      "feature": "sensor_max",
+      "cause_family": "High-side excursion",
+      "hypothesis": "The lot may contain unusually high sensor readings relative to normal-reference behavior.",
+      "evidence_type": "Sensor high-tail evidence",
+      "recommended_review": "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+    },
+    {
+      "feature": "spc_violation_count",
+      "cause_family": "SPC rule violation",
+      "hypothesis": "The lot may have repeated process-control rule violations.",
+      "evidence_type": "SPC count evidence",
+      "recommended_review": "Review control-chart rule violations, recipe context, and recent process-window changes."
+    },
+    {
+      "feature": "spc_max_abs_zscore",
+      "cause_family": "SPC excursion",
+      "hypothesis": "The lot may contain a large standardized process excursion.",
+      "evidence_type": "SPC magnitude evidence",
+      "recommended_review": "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts."
+    }
+  ],
+  "lot_summary_table": [
+    {
+      "triage_rank": 1,
+      "lot_id": "LOT_SPC_060",
+      "true_label": 1,
+      "max_abs_feature_zscore": 1999999999.9999998,
+      "top_feature": "spc_violation_count",
+      "top_cause_family": "SPC rule violation",
+      "top_evidence_strength": "critical",
+      "cause_family_summary": "SPC rule violation; SPC excursion; High-side excursion"
+    },
+    {
+      "triage_rank": 2,
+      "lot_id": "LOT_SPC_021",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_feature": "spc_violation_count",
+      "top_cause_family": "SPC rule violation",
+      "top_evidence_strength": "critical",
+      "cause_family_summary": "SPC rule violation; SPC excursion; Process center shift"
+    },
+    {
+      "triage_rank": 3,
+      "lot_id": "LOT_SPC_023",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_feature": "spc_violation_count",
+      "top_cause_family": "SPC rule violation",
+      "top_evidence_strength": "critical",
+      "cause_family_summary": "SPC rule violation; SPC excursion; Process center shift"
+    },
+    {
+      "triage_rank": 4,
+      "lot_id": "LOT_SPC_024",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_feature": "spc_violation_count",
+      "top_cause_family": "SPC rule violation",
+      "top_evidence_strength": "critical",
+      "cause_family_summary": "SPC rule violation; SPC excursion; High-side excursion"
+    },
+    {
+      "triage_rank": 5,
+      "lot_id": "LOT_SPC_027",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_feature": "spc_violation_count",
+      "top_cause_family": "SPC rule violation",
+      "top_evidence_strength": "critical",
+      "cause_family_summary": "SPC rule violation; SPC excursion; Process center shift"
+    },
+    {
+      "triage_rank": 6,
+      "lot_id": "LOT_SPC_030",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_feature": "spc_violation_count",
+      "top_cause_family": "SPC rule violation",
+      "top_evidence_strength": "critical",
+      "cause_family_summary": "SPC rule violation; SPC excursion; Process center shift"
+    },
+    {
+      "triage_rank": 7,
+      "lot_id": "LOT_SPC_036",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_feature": "spc_violation_count",
+      "top_cause_family": "SPC rule violation",
+      "top_evidence_strength": "critical",
+      "cause_family_summary": "SPC rule violation; SPC excursion; High-side excursion"
+    },
+    {
+      "triage_rank": 8,
+      "lot_id": "LOT_SPC_041",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_feature": "spc_violation_count",
+      "top_cause_family": "SPC rule violation",
+      "top_evidence_strength": "critical",
+      "cause_family_summary": "SPC rule violation; SPC excursion; Process center shift"
+    },
+    {
+      "triage_rank": 9,
+      "lot_id": "LOT_SPC_056",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_feature": "spc_violation_count",
+      "top_cause_family": "SPC rule violation",
+      "top_evidence_strength": "critical",
+      "cause_family_summary": "SPC rule violation; SPC excursion; Process instability"
+    },
+    {
+      "triage_rank": 10,
+      "lot_id": "LOT_SPC_058",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_feature": "spc_violation_count",
+      "top_cause_family": "SPC rule violation",
+      "top_evidence_strength": "critical",
+      "cause_family_summary": "SPC rule violation; SPC excursion; Process center shift"
+    }
+  ],
+  "lot_triage_reports": [
+    {
+      "triage_rank": 1,
+      "lot_id": "LOT_SPC_060",
+      "true_label": 1,
+      "max_abs_feature_zscore": 1999999999.9999998,
+      "top_cause_families": [
+        "SPC rule violation",
+        "SPC excursion",
+        "High-side excursion"
+      ],
+      "evidence_items": [
+        {
+          "feature": "spc_violation_count",
+          "feature_value": 2.0,
+          "normal_mean": 0.0,
+          "normal_std": 1e-09,
+          "z_score": 1999999999.9999998,
+          "abs_z_score": 1999999999.9999998,
+          "evidence_strength": "critical",
+          "cause_family": "SPC rule violation",
+          "hypothesis": "The lot may have repeated process-control rule violations.",
+          "recommended_review": "Review control-chart rule violations, recipe context, and recent process-window changes."
+        },
+        {
+          "feature": "spc_max_abs_zscore",
+          "feature_value": 5.031321165916056,
+          "normal_mean": 1.552137296885788,
+          "normal_std": 0.5245609287607107,
+          "z_score": 6.63256388013864,
+          "abs_z_score": 6.63256388013864,
+          "evidence_strength": "critical",
+          "cause_family": "SPC excursion",
+          "hypothesis": "The lot may contain a large standardized process excursion.",
+          "recommended_review": "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts."
+        },
+        {
+          "feature": "sensor_max",
+          "feature_value": 17.415896743028128,
+          "normal_mean": 15.08153952266409,
+          "normal_std": 0.43357612971917625,
+          "z_score": 5.3839615706611506,
+          "abs_z_score": 5.3839615706611506,
+          "evidence_strength": "critical",
+          "cause_family": "High-side excursion",
+          "hypothesis": "The lot may contain unusually high sensor readings relative to normal-reference behavior.",
+          "recommended_review": "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+        }
+      ],
+      "recommended_reviews": [
+        "Review control-chart rule violations, recipe context, and recent process-window changes.",
+        "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
+        "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+      ],
+      "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
+    },
+    {
+      "triage_rank": 2,
+      "lot_id": "LOT_SPC_021",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_cause_families": [
+        "SPC rule violation",
+        "SPC excursion",
+        "Process center shift"
+      ],
+      "evidence_items": [
+        {
+          "feature": "spc_violation_count",
+          "feature_value": 1.0,
+          "normal_mean": 0.0,
+          "normal_std": 1e-09,
+          "z_score": 999999999.9999999,
+          "abs_z_score": 999999999.9999999,
+          "evidence_strength": "critical",
+          "cause_family": "SPC rule violation",
+          "hypothesis": "The lot may have repeated process-control rule violations.",
+          "recommended_review": "Review control-chart rule violations, recipe context, and recent process-window changes."
+        },
+        {
+          "feature": "spc_max_abs_zscore",
+          "feature_value": 5.124997506029305,
+          "normal_mean": 1.552137296885788,
+          "normal_std": 0.5245609287607107,
+          "z_score": 6.811144355689043,
+          "abs_z_score": 6.811144355689043,
+          "evidence_strength": "critical",
+          "cause_family": "SPC excursion",
+          "hypothesis": "The lot may contain a large standardized process excursion.",
+          "recommended_review": "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts."
+        },
+        {
+          "feature": "sensor_mean",
+          "feature_value": 12.28290777049951,
+          "normal_mean": 12.985070330850363,
+          "normal_std": 0.17899992300300063,
+          "z_score": -3.9226975552334884,
+          "abs_z_score": 3.9226975552334884,
+          "evidence_strength": "critical",
+          "cause_family": "Process center shift",
+          "hypothesis": "The average sensor behavior may have shifted away from the normal reference pattern.",
+          "recommended_review": "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+        }
+      ],
+      "recommended_reviews": [
+        "Review control-chart rule violations, recipe context, and recent process-window changes.",
+        "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
+        "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+      ],
+      "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
+    },
+    {
+      "triage_rank": 3,
+      "lot_id": "LOT_SPC_023",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_cause_families": [
+        "SPC rule violation",
+        "SPC excursion",
+        "Process center shift"
+      ],
+      "evidence_items": [
+        {
+          "feature": "spc_violation_count",
+          "feature_value": 1.0,
+          "normal_mean": 0.0,
+          "normal_std": 1e-09,
+          "z_score": 999999999.9999999,
+          "abs_z_score": 999999999.9999999,
+          "evidence_strength": "critical",
+          "cause_family": "SPC rule violation",
+          "hypothesis": "The lot may have repeated process-control rule violations.",
+          "recommended_review": "Review control-chart rule violations, recipe context, and recent process-window changes."
+        },
+        {
+          "feature": "spc_max_abs_zscore",
+          "feature_value": 4.8681953406122425,
+          "normal_mean": 1.552137296885788,
+          "normal_std": 0.5245609287607107,
+          "z_score": 6.3215879451043575,
+          "abs_z_score": 6.3215879451043575,
+          "evidence_strength": "critical",
+          "cause_family": "SPC excursion",
+          "hypothesis": "The lot may contain a large standardized process excursion.",
+          "recommended_review": "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts."
+        },
+        {
+          "feature": "sensor_mean",
+          "feature_value": 12.518667379033651,
+          "normal_mean": 12.985070330850363,
+          "normal_std": 0.17899992300300063,
+          "z_score": -2.6056042035777454,
+          "abs_z_score": 2.6056042035777454,
+          "evidence_strength": "high",
+          "cause_family": "Process center shift",
+          "hypothesis": "The average sensor behavior may have shifted away from the normal reference pattern.",
+          "recommended_review": "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+        }
+      ],
+      "recommended_reviews": [
+        "Review control-chart rule violations, recipe context, and recent process-window changes.",
+        "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
+        "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+      ],
+      "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
+    },
+    {
+      "triage_rank": 4,
+      "lot_id": "LOT_SPC_024",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_cause_families": [
+        "SPC rule violation",
+        "SPC excursion",
+        "High-side excursion"
+      ],
+      "evidence_items": [
+        {
+          "feature": "spc_violation_count",
+          "feature_value": 1.0,
+          "normal_mean": 0.0,
+          "normal_std": 1e-09,
+          "z_score": 999999999.9999999,
+          "abs_z_score": 999999999.9999999,
+          "evidence_strength": "critical",
+          "cause_family": "SPC rule violation",
+          "hypothesis": "The lot may have repeated process-control rule violations.",
+          "recommended_review": "Review control-chart rule violations, recipe context, and recent process-window changes."
+        },
+        {
+          "feature": "spc_max_abs_zscore",
+          "feature_value": 6.545462788966579,
+          "normal_mean": 1.552137296885788,
+          "normal_std": 0.5245609287607107,
+          "z_score": 9.519057212052862,
+          "abs_z_score": 9.519057212052862,
+          "evidence_strength": "critical",
+          "cause_family": "SPC excursion",
+          "hypothesis": "The lot may contain a large standardized process excursion.",
+          "recommended_review": "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts."
+        },
+        {
+          "feature": "sensor_max",
+          "feature_value": 18.131247406311783,
+          "normal_mean": 15.08153952266409,
+          "normal_std": 0.43357612971917625,
+          "z_score": 7.033846364242802,
+          "abs_z_score": 7.033846364242802,
+          "evidence_strength": "critical",
+          "cause_family": "High-side excursion",
+          "hypothesis": "The lot may contain unusually high sensor readings relative to normal-reference behavior.",
+          "recommended_review": "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+        }
+      ],
+      "recommended_reviews": [
+        "Review control-chart rule violations, recipe context, and recent process-window changes.",
+        "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
+        "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+      ],
+      "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
+    },
+    {
+      "triage_rank": 5,
+      "lot_id": "LOT_SPC_027",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_cause_families": [
+        "SPC rule violation",
+        "SPC excursion",
+        "Process center shift"
+      ],
+      "evidence_items": [
+        {
+          "feature": "spc_violation_count",
+          "feature_value": 1.0,
+          "normal_mean": 0.0,
+          "normal_std": 1e-09,
+          "z_score": 999999999.9999999,
+          "abs_z_score": 999999999.9999999,
+          "evidence_strength": "critical",
+          "cause_family": "SPC rule violation",
+          "hypothesis": "The lot may have repeated process-control rule violations.",
+          "recommended_review": "Review control-chart rule violations, recipe context, and recent process-window changes."
+        },
+        {
+          "feature": "spc_max_abs_zscore",
+          "feature_value": 4.552708164378723,
+          "normal_mean": 1.552137296885788,
+          "normal_std": 0.5245609287607107,
+          "z_score": 5.720156997933232,
+          "abs_z_score": 5.720156997933232,
+          "evidence_strength": "critical",
+          "cause_family": "SPC excursion",
+          "hypothesis": "The lot may contain a large standardized process excursion.",
+          "recommended_review": "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts."
+        },
+        {
+          "feature": "sensor_mean",
+          "feature_value": 13.42241022580404,
+          "normal_mean": 12.985070330850363,
+          "normal_std": 0.17899992300300063,
+          "z_score": 2.443240687574742,
+          "abs_z_score": 2.443240687574742,
+          "evidence_strength": "high",
+          "cause_family": "Process center shift",
+          "hypothesis": "The average sensor behavior may have shifted away from the normal reference pattern.",
+          "recommended_review": "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+        }
+      ],
+      "recommended_reviews": [
+        "Review control-chart rule violations, recipe context, and recent process-window changes.",
+        "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
+        "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+      ],
+      "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
+    },
+    {
+      "triage_rank": 6,
+      "lot_id": "LOT_SPC_030",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_cause_families": [
+        "SPC rule violation",
+        "SPC excursion",
+        "Process center shift"
+      ],
+      "evidence_items": [
+        {
+          "feature": "spc_violation_count",
+          "feature_value": 1.0,
+          "normal_mean": 0.0,
+          "normal_std": 1e-09,
+          "z_score": 999999999.9999999,
+          "abs_z_score": 999999999.9999999,
+          "evidence_strength": "critical",
+          "cause_family": "SPC rule violation",
+          "hypothesis": "The lot may have repeated process-control rule violations.",
+          "recommended_review": "Review control-chart rule violations, recipe context, and recent process-window changes."
+        },
+        {
+          "feature": "spc_max_abs_zscore",
+          "feature_value": 5.035527237069815,
+          "normal_mean": 1.552137296885788,
+          "normal_std": 0.5245609287607107,
+          "z_score": 6.640582150130071,
+          "abs_z_score": 6.640582150130071,
+          "evidence_strength": "critical",
+          "cause_family": "SPC excursion",
+          "hypothesis": "The lot may contain a large standardized process excursion.",
+          "recommended_review": "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts."
+        },
+        {
+          "feature": "sensor_mean",
+          "feature_value": 12.630598223495069,
+          "normal_mean": 12.985070330850363,
+          "normal_std": 0.17899992300300063,
+          "z_score": -1.980291954367778,
+          "abs_z_score": 1.980291954367778,
+          "evidence_strength": "moderate",
+          "cause_family": "Process center shift",
+          "hypothesis": "The average sensor behavior may have shifted away from the normal reference pattern.",
+          "recommended_review": "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+        }
+      ],
+      "recommended_reviews": [
+        "Review control-chart rule violations, recipe context, and recent process-window changes.",
+        "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
+        "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+      ],
+      "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
+    },
+    {
+      "triage_rank": 7,
+      "lot_id": "LOT_SPC_036",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_cause_families": [
+        "SPC rule violation",
+        "SPC excursion",
+        "High-side excursion"
+      ],
+      "evidence_items": [
+        {
+          "feature": "spc_violation_count",
+          "feature_value": 1.0,
+          "normal_mean": 0.0,
+          "normal_std": 1e-09,
+          "z_score": 999999999.9999999,
+          "abs_z_score": 999999999.9999999,
+          "evidence_strength": "critical",
+          "cause_family": "SPC rule violation",
+          "hypothesis": "The lot may have repeated process-control rule violations.",
+          "recommended_review": "Review control-chart rule violations, recipe context, and recent process-window changes."
+        },
+        {
+          "feature": "spc_max_abs_zscore",
+          "feature_value": 6.781931780893044,
+          "normal_mean": 1.552137296885788,
+          "normal_std": 0.5245609287607107,
+          "z_score": 9.969851350467115,
+          "abs_z_score": 9.969851350467115,
+          "evidence_strength": "critical",
+          "cause_family": "SPC excursion",
+          "hypothesis": "The lot may contain a large standardized process excursion.",
+          "recommended_review": "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts."
+        },
+        {
+          "feature": "sensor_max",
+          "feature_value": 17.723997729185328,
+          "normal_mean": 15.08153952266409,
+          "normal_std": 0.43357612971917625,
+          "z_score": 6.094565695377966,
+          "abs_z_score": 6.094565695377966,
+          "evidence_strength": "critical",
+          "cause_family": "High-side excursion",
+          "hypothesis": "The lot may contain unusually high sensor readings relative to normal-reference behavior.",
+          "recommended_review": "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+        }
+      ],
+      "recommended_reviews": [
+        "Review control-chart rule violations, recipe context, and recent process-window changes.",
+        "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
+        "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+      ],
+      "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
+    },
+    {
+      "triage_rank": 8,
+      "lot_id": "LOT_SPC_041",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_cause_families": [
+        "SPC rule violation",
+        "SPC excursion",
+        "Process center shift"
+      ],
+      "evidence_items": [
+        {
+          "feature": "spc_violation_count",
+          "feature_value": 1.0,
+          "normal_mean": 0.0,
+          "normal_std": 1e-09,
+          "z_score": 999999999.9999999,
+          "abs_z_score": 999999999.9999999,
+          "evidence_strength": "critical",
+          "cause_family": "SPC rule violation",
+          "hypothesis": "The lot may have repeated process-control rule violations.",
+          "recommended_review": "Review control-chart rule violations, recipe context, and recent process-window changes."
+        },
+        {
+          "feature": "spc_max_abs_zscore",
+          "feature_value": 5.617026076760795,
+          "normal_mean": 1.552137296885788,
+          "normal_std": 0.5245609287607107,
+          "z_score": 7.749126091945918,
+          "abs_z_score": 7.749126091945918,
+          "evidence_strength": "critical",
+          "cause_family": "SPC excursion",
+          "hypothesis": "The lot may contain a large standardized process excursion.",
+          "recommended_review": "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts."
+        },
+        {
+          "feature": "sensor_mean",
+          "feature_value": 12.374208408281689,
+          "normal_mean": 12.985070330850363,
+          "normal_std": 0.17899992300300063,
+          "z_score": -3.4126379068801818,
+          "abs_z_score": 3.4126379068801818,
+          "evidence_strength": "critical",
+          "cause_family": "Process center shift",
+          "hypothesis": "The average sensor behavior may have shifted away from the normal reference pattern.",
+          "recommended_review": "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+        }
+      ],
+      "recommended_reviews": [
+        "Review control-chart rule violations, recipe context, and recent process-window changes.",
+        "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
+        "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+      ],
+      "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
+    },
+    {
+      "triage_rank": 9,
+      "lot_id": "LOT_SPC_056",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_cause_families": [
+        "SPC rule violation",
+        "SPC excursion",
+        "Process instability"
+      ],
+      "evidence_items": [
+        {
+          "feature": "spc_violation_count",
+          "feature_value": 1.0,
+          "normal_mean": 0.0,
+          "normal_std": 1e-09,
+          "z_score": 999999999.9999999,
+          "abs_z_score": 999999999.9999999,
+          "evidence_strength": "critical",
+          "cause_family": "SPC rule violation",
+          "hypothesis": "The lot may have repeated process-control rule violations.",
+          "recommended_review": "Review control-chart rule violations, recipe context, and recent process-window changes."
+        },
+        {
+          "feature": "spc_max_abs_zscore",
+          "feature_value": 5.88740882562597,
+          "normal_mean": 1.552137296885788,
+          "normal_std": 0.5245609287607107,
+          "z_score": 8.26457193253485,
+          "abs_z_score": 8.26457193253485,
+          "evidence_strength": "critical",
+          "cause_family": "SPC excursion",
+          "hypothesis": "The lot may contain a large standardized process excursion.",
+          "recommended_review": "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts."
+        },
+        {
+          "feature": "sensor_std",
+          "feature_value": 2.851240710006379,
+          "normal_mean": 1.6624365809140242,
+          "normal_std": 0.23003070650561006,
+          "z_score": 5.168023639762901,
+          "abs_z_score": 5.168023639762901,
+          "evidence_strength": "critical",
+          "cause_family": "Process instability",
+          "hypothesis": "The lot may show higher within-lot sensor variability or unstable process behavior.",
+          "recommended_review": "Review tool stability, run-to-run variation, maintenance history, and abnormal sensor fluctuation windows."
+        }
+      ],
+      "recommended_reviews": [
+        "Review control-chart rule violations, recipe context, and recent process-window changes.",
+        "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
+        "Review tool stability, run-to-run variation, maintenance history, and abnormal sensor fluctuation windows."
+      ],
+      "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
+    },
+    {
+      "triage_rank": 10,
+      "lot_id": "LOT_SPC_058",
+      "true_label": 1,
+      "max_abs_feature_zscore": 999999999.9999999,
+      "top_cause_families": [
+        "SPC rule violation",
+        "SPC excursion",
+        "Process center shift"
+      ],
+      "evidence_items": [
+        {
+          "feature": "spc_violation_count",
+          "feature_value": 1.0,
+          "normal_mean": 0.0,
+          "normal_std": 1e-09,
+          "z_score": 999999999.9999999,
+          "abs_z_score": 999999999.9999999,
+          "evidence_strength": "critical",
+          "cause_family": "SPC rule violation",
+          "hypothesis": "The lot may have repeated process-control rule violations.",
+          "recommended_review": "Review control-chart rule violations, recipe context, and recent process-window changes."
+        },
+        {
+          "feature": "spc_max_abs_zscore",
+          "feature_value": 10.2844129396377,
+          "normal_mean": 1.552137296885788,
+          "normal_std": 0.5245609287607107,
+          "z_score": 16.64682816423661,
+          "abs_z_score": 16.64682816423661,
+          "evidence_strength": "critical",
+          "cause_family": "SPC excursion",
+          "hypothesis": "The lot may contain a large standardized process excursion.",
+          "recommended_review": "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts."
+        },
+        {
+          "feature": "sensor_mean",
+          "feature_value": 13.7368730439931,
+          "normal_mean": 12.985070330850363,
+          "normal_std": 0.17899992300300063,
+          "z_score": 4.200016963862798,
+          "abs_z_score": 4.200016963862798,
+          "evidence_strength": "critical",
+          "cause_family": "Process center shift",
+          "hypothesis": "The average sensor behavior may have shifted away from the normal reference pattern.",
+          "recommended_review": "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+        }
+      ],
+      "recommended_reviews": [
+        "Review control-chart rule violations, recipe context, and recent process-window changes.",
+        "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
+        "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
+      ],
+      "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
+    }
+  ],
+  "interpretation_note": "This module provides evidence-grounded cause hypotheses for engineering triage. It does not prove causal root cause."
+}
