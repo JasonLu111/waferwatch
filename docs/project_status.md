@@ -23,6 +23,7 @@ data validation
 -> Isolation Forest threshold tuning
 -> PCA anomaly detection baseline
 -> Autoencoder anomaly detection baseline
+-> Robustness and ablation experiments
 -> model family comparison
 -> cost-sensitive thresholding
 -> batch prediction
@@ -79,6 +80,7 @@ WaferWatch can currently:
 - Tune Isolation Forest thresholds under false-alarm budget.
 - Train PCA anomaly detection baseline.
 - Train autoencoder-style anomaly detection baseline.
+- Run robustness and ablation experiments.
 - Compare Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, PCA anomaly detection, and Autoencoder-style anomaly detection baselines.
 - Generate Random Forest feature importance.
 - Compare aggregate-only, SPC-enhanced, and feature-selected models.
@@ -123,6 +125,15 @@ Interpretation:
 | False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 | 4.166667 | 0.000000 |
 
 Autoencoder-style anomaly detection captures all held-out failed lots and produces no false alarms in the controlled demo. Together with Isolation Forest and PCA anomaly detection, it strengthens the unsupervised anomaly detection comparison.
+
+### Robustness and Ablation Experiments
+
+| Experiment type | Scenario | Purpose |
+|---|---|---|
+| Feature ablation | Remove SPC features individually or jointly | Test dependence on engineered SPC signals |
+| Severity stress test | Reduce anomaly severity to 0.75, 0.50, and 0.25 | Test model stability when anomaly signals become weaker |
+
+The robustness and ablation experiments generated 48 result rows across 8 scenarios and 6 model families. This strengthens the project by showing how model behavior changes when SPC features are removed or anomaly severity is reduced.
 
 ### Isolation Forest Threshold Tuning
 
@@ -190,7 +201,7 @@ The current project is still limited by:
 
 Recommended next steps:
 
-- Add robustness and ablation experiments.
+- Add repeated-seed robustness experiments.
 - Add unsupervised anomaly detection baseline.
 - Add prediction-score drift monitoring.
 - Add model explainability.

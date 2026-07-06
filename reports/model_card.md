@@ -355,6 +355,32 @@ top_5_review
 This policy preserves full recall and avoids false alarms in the controlled synthetic demo. The result should be interpreted as workflow validation, not production performance.
 
 ---
+## 14. Robustness and Ablation Experiments
+
+WaferWatch includes robustness experiments to reduce the risk of overclaiming perfect demo metrics.
+
+| Experiment type | Scenario | Purpose |
+|---|---|---|
+| Feature ablation | Remove SPC features individually or jointly | Test dependence on engineered SPC features |
+| Severity stress test | Reduce anomaly severity to 0.75, 0.50, and 0.25 | Test stability when anomaly signals become weaker |
+
+Baseline full-feature results:
+
+| Model | Precision | Recall | F1 | PR-AUC | False alarms per 100 lots |
+|---|---:|---:|---:|---:|---:|
+| Logistic Regression | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 0.000000 |
+| Random Forest | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 0.000000 |
+| Gradient Boosting | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 0.000000 |
+| Isolation Forest | 0.416667 | 1.000000 | 0.588235 | 1.000000 | 29.166667 |
+| PCA Anomaly | 0.833333 | 1.000000 | 0.909091 | 1.000000 | 4.166667 |
+| Autoencoder Anomaly | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 0.000000 |
+
+Interpretation:
+
+These experiments make the project more defensible. If performance remains high under ablation or severity stress, the workflow is more robust. If performance drops, the drop identifies which engineered signals are carrying model performance.
+
+---
+
 ## 14. Calibration Analysis
 
 WaferWatch includes calibration analysis because predicted risk scores are used for cost-sensitive thresholding and engineering escalation decisions.
@@ -518,7 +544,7 @@ Current limitations:
 Recommended technical next steps:
 
 - Add threshold recalibration experiments.
-- Add robustness and ablation experiments.
+- Add repeated-seed robustness experiments.
 - Add unsupervised anomaly detection.
 - Add prediction-score drift monitoring.
 - Add model retraining trigger logic.

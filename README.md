@@ -62,6 +62,7 @@ The current implementation includes:
 | Isolation Forest threshold tuning | Completed |
 | PCA anomaly detection baseline | Completed |
 | Autoencoder anomaly detection baseline | Completed |
+| Robustness and ablation experiments | Completed |
 | Calibration analysis | Completed |
 | Cost-sensitive thresholding | Completed |
 | Batch prediction | Completed |
@@ -75,7 +76,7 @@ The current implementation includes:
 
 Planned later modules include:
 
-- Robustness and ablation experiments
+- Repeated-seed robustness experiments
 - Unsupervised anomaly detection
 - Model explainability
 - Evidence-grounded RAG root-cause triage
@@ -431,6 +432,7 @@ This alert is triggered because both feature drift and model performance degrada
 | `reports/isolation_threshold_report.md` | Documents Isolation Forest threshold tuning and false-alarm budget analysis |
 | `reports/pca_anomaly_report.md` | Documents PCA reconstruction-error anomaly detection results |
 | `reports/autoencoder_anomaly_report.md` | Documents autoencoder-style reconstruction-error anomaly detection results |
+| `reports/robustness_ablation_report.md` | Documents feature ablation and anomaly severity stress-test results |
 | `reports/monitoring_alert_summary.md` | Engineer-readable combined alert summary |
 
 ---
@@ -459,7 +461,7 @@ These limitations are documented intentionally to prevent overclaiming.
 Planned next steps:
 
 - Add threshold recalibration experiments.
-- Add robustness and ablation experiments.
+- Add repeated-seed robustness experiments.
 - Add unsupervised anomaly detection models.
 - Add prediction-score drift monitoring.
 - Add model explainability.
