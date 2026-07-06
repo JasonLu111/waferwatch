@@ -286,7 +286,7 @@ def build_markdown_report(
     )
     lines.append("")
 
-    return "\n".join(lines)
+    return "".join(lines)
 
 
 def to_json_records(df: pd.DataFrame) -> list[dict[str, Any]]:
