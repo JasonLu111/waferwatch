@@ -278,15 +278,17 @@ def build_markdown_report(
     lines.append(
         "Repeated-seed evaluation makes the experiment more defensible because it reduces dependence on one lucky train-test split."
     )
+    lines.append("")
     lines.append(
         "If a model has high mean performance and low standard deviation, its result is more stable. If the standard deviation is large, the model may be sensitive to how lots are split into train and test sets."
     )
+    lines.append("")
     lines.append(
         "These repeated-seed results should still be interpreted as controlled synthetic evidence, not production performance."
     )
     lines.append("")
 
-    return "".join(lines)
+    return chr(10).join(lines)
 
 
 def to_json_records(df: pd.DataFrame) -> list[dict[str, Any]]:
