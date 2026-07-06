@@ -157,6 +157,28 @@ def classify_evidence_strength(abs_z_score: float) -> str:
     return "low"
 
 
+def classify_feature_evidence_strength(
+    feature: str,
+    feature_value: float,
+    abs_z_score: float,
+) -> str:
+    """
+    Convert feature evidence into a human-readable strength label.
+
+    Some count-based SPC features can have zero variance among normal-reference lots.
+    For those features, domain rules are clearer than raw z-score magnitude.
+    """
+
+    if feature == "spc_violation_count":
+        if feature_value >= 2:
+            return "critical"
+        if feature_value >= 1:
+            return "high"
+        return "low"
+
+    return classify_evidence_strength(abs_z_score)
+
+
 def calculate_normal_reference_stats(
     df: pd.DataFrame,
     feature_columns: list[str],
@@ -178,7 +200,7 @@ def calculate_normal_reference_stats(
         std_value = float(normal_df[feature].std(ddof=0))
 
         if std_value == 0.0 or np.isnan(std_value):
-            std_value = 1e-9
+            std_value = 1.0
 
         stats.append(
             {
@@ -267,7 +289,11 @@ def build_feature_contributions(
                     "normal_std": normal_std,
                     "z_score": float(z_score),
                     "abs_z_score": float(abs_z_score),
-                    "evidence_strength": classify_evidence_strength(abs_z_score),
+                    "evidence_strength": classify_feature_evidence_strength(
+                        feature=feature,
+                        feature_value=feature_value,
+                        abs_z_score=abs_z_score,
+                    ),
                     "cause_family": mapping["cause_family"],
                     "hypothesis": mapping["hypothesis"],
                     "evidence_type": mapping["evidence_type"],
