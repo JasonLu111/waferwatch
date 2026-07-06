@@ -134,7 +134,7 @@ def shrink_anomaly_signal(
     severity = 0.25 makes anomaly rows much harder to separate.
     """
 
-    X_modified = X.copy()
+    X_modified = X.copy().astype(float)
     normal_mean = X.loc[y == 0].mean(axis=0)
 
     anomaly_mask = y == 1
