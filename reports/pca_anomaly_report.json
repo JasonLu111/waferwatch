@@ -1,0 +1,121 @@
+{
+  "model_name": "PCA reconstruction-error anomaly detection baseline",
+  "model_file": "D:\\waferwatch\\models\\pca_anomaly_normal_reference.joblib",
+  "feature_table": "D:\\waferwatch\\data\\processed\\demo_spc_selected_feature_table.csv",
+  "training_rows": 56,
+  "normal_reference_training_rows": 45,
+  "test_rows": 24,
+  "n_features": 6,
+  "feature_columns": [
+    "sensor_mean",
+    "sensor_std",
+    "sensor_min",
+    "sensor_max",
+    "spc_violation_count",
+    "spc_max_abs_zscore"
+  ],
+  "pca_components_retained": 4,
+  "explained_variance_ratio": [
+    0.5317478889364586,
+    0.29661163862597484,
+    0.10656783795069358,
+    0.0429985341872909
+  ],
+  "explained_variance_ratio_sum": 0.977925899700418,
+  "threshold_quantile": 0.95,
+  "reconstruction_error_threshold": 0.017723268653951744,
+  "evaluation_metrics": {
+    "accuracy": 0.9583333333333334,
+    "precision": 0.8333333333333334,
+    "recall": 1.0,
+    "f1": 0.9090909090909091,
+    "balanced_accuracy": 0.9736842105263157,
+    "matthews_corrcoef": 0.8885233166386385,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "precision_at_k": 0.5,
+    "recall_at_k": 1.0,
+    "top_k": 10,
+    "false_alarms_per_100_lots": 4.166666666666666,
+    "confusion_matrix": {
+      "true_negative": 18,
+      "false_positive": 1,
+      "false_negative": 0,
+      "true_positive": 5
+    }
+  },
+  "top_suspicious_lots": [
+    {
+      "rank": 1,
+      "lot_id": "LOT_SPC_021",
+      "true_label": 1,
+      "reconstruction_error": 0.8437821134501795,
+      "predicted_label": 1
+    },
+    {
+      "rank": 2,
+      "lot_id": "LOT_SPC_027",
+      "true_label": 1,
+      "reconstruction_error": 0.823821556362012,
+      "predicted_label": 1
+    },
+    {
+      "rank": 3,
+      "lot_id": "LOT_SPC_078",
+      "true_label": 1,
+      "reconstruction_error": 0.8209360625670984,
+      "predicted_label": 1
+    },
+    {
+      "rank": 4,
+      "lot_id": "LOT_SPC_077",
+      "true_label": 1,
+      "reconstruction_error": 0.818217352473003,
+      "predicted_label": 1
+    },
+    {
+      "rank": 5,
+      "lot_id": "LOT_SPC_024",
+      "true_label": 1,
+      "reconstruction_error": 0.8169517602453262,
+      "predicted_label": 1
+    },
+    {
+      "rank": 6,
+      "lot_id": "LOT_SPC_063",
+      "true_label": 0,
+      "reconstruction_error": 0.022001029522177154,
+      "predicted_label": 1
+    },
+    {
+      "rank": 7,
+      "lot_id": "LOT_SPC_034",
+      "true_label": 0,
+      "reconstruction_error": 0.015658202604024486,
+      "predicted_label": 0
+    },
+    {
+      "rank": 8,
+      "lot_id": "LOT_SPC_022",
+      "true_label": 0,
+      "reconstruction_error": 0.015199427505107053,
+      "predicted_label": 0
+    },
+    {
+      "rank": 9,
+      "lot_id": "LOT_SPC_015",
+      "true_label": 0,
+      "reconstruction_error": 0.01342403390732413,
+      "predicted_label": 0
+    },
+    {
+      "rank": 10,
+      "lot_id": "LOT_SPC_076",
+      "true_label": 0,
+      "reconstruction_error": 0.006716502165271866,
+      "predicted_label": 0
+    }
+  ],
+  "scored_lots_file": "D:\\waferwatch\\data\\processed\\demo_pca_anomaly_scored_lots.csv",
+  "interpretation_note": "PCA anomaly detection is used here as a reconstruction-error baseline. The model is fitted only on normal-reference training lots, then lots with large reconstruction error are treated as suspicious. This provides a second unsupervised anomaly detection family beyond Isolation Forest. Because this is still a controlled synthetic SPC demo, the result should validate the workflow rather than imply real production performance."
+}
