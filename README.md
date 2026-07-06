@@ -303,7 +303,32 @@ In the current controlled synthetic SPC demo, the supervised models achieve perf
 
 This comparison supports a practical manufacturing-style discussion: supervised classifiers perform strongly when labels are available, while unsupervised anomaly detectors remain valuable when confirmed failure labels are rare, delayed, or incomplete.
 
-### 8.3 Isolation Forest Threshold Tuning
+### 8.4 Robustness and Ablation Experiments
+
+WaferWatch now includes robustness experiments to test whether strong demo results remain stable when key SPC features are removed or when the anomaly signal is weakened.
+
+| Experiment type | Scenario | Purpose |
+|---|---|---|
+| Baseline | Full selected feature table | Establish reference model behavior |
+| Feature ablation | Remove one or more SPC features | Test whether models depend too heavily on engineered SPC signals |
+| Anomaly severity stress test | Shrink failed-lot features toward normal-lot means | Test whether models remain stable when anomaly signals become weaker |
+
+Baseline full-feature results:
+
+| Model | Precision | Recall | F1 | PR-AUC | False alarms per 100 lots |
+|---|---:|---:|---:|---:|---:|
+| Logistic Regression | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 0.000000 |
+| Random Forest | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 0.000000 |
+| Gradient Boosting | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 0.000000 |
+| Isolation Forest | 0.416667 | 1.000000 | 0.588235 | 1.000000 | 29.166667 |
+| PCA Anomaly | 0.833333 | 1.000000 | 0.909091 | 1.000000 | 4.166667 |
+| Autoencoder Anomaly | 1.000000 | 1.000000 | 1.000000 | 1.000000 | 0.000000 |
+
+Key finding:
+
+When all SPC features are removed, supervised models and reconstruction-error anomaly detectors no longer remain uniformly perfect. This is useful because it shows that the strong headline results are driven by meaningful engineered SPC signals rather than being treated as unexplained perfect metrics.
+
+### 8.5 Isolation Forest Threshold Tuning
 
 Isolation Forest produced strong anomaly ranking performance, but its default decision threshold generated more false alarms than the supervised models. To make the unsupervised workflow more operational, WaferWatch evaluates top-K review and escalation-rate policies.
 

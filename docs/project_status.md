@@ -221,7 +221,7 @@ Recommended next steps:
 
 The next best implementation step is:
 
-Robustness and ablation experiments
+Repeated-seed robustness experiments
 
     Reason:
 
