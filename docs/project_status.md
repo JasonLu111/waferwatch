@@ -208,8 +208,7 @@ Recommended next steps:
 
 The next best implementation step is:
 
-
-PCA anomaly detection baseline
+Autoencoder anomaly detection baseline
 
     Reason:
 
