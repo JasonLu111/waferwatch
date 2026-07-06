@@ -55,16 +55,16 @@ FEATURE_HYPOTHESIS_MAP: dict[str, dict[str, str]] = {
         "recommended_review": "Review tool stability, run-to-run variation, maintenance history, and abnormal sensor fluctuation windows.",
     },
     "sensor_min": {
-        "cause_family": "Low-side excursion",
-        "hypothesis": "The lot may contain unusually low sensor readings relative to normal-reference behavior.",
+        "cause_family": "Lower-tail excursion",
+        "hypothesis": "The lot may contain an unusual lower-tail sensor pattern relative to normal-reference behavior.",
         "evidence_type": "Sensor low-tail evidence",
-        "recommended_review": "Review possible under-processing, sensor dropout, or low-side transient events.",
+        "recommended_review": "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts.",
     },
     "sensor_max": {
-        "cause_family": "High-side excursion",
-        "hypothesis": "The lot may contain unusually high sensor readings relative to normal-reference behavior.",
+        "cause_family": "Upper-tail excursion",
+        "hypothesis": "The lot may contain an unusual upper-tail sensor pattern relative to normal-reference behavior.",
         "evidence_type": "Sensor high-tail evidence",
-        "recommended_review": "Review possible over-processing, transient spikes, tool instability, or high-side excursion events.",
+        "recommended_review": "Review upper-tail sensor readings, possible over-processing, transient spikes, tool instability, or boundary shifts.",
     },
 }
 

@@ -36,17 +36,17 @@
     },
     {
       "feature": "sensor_min",
-      "cause_family": "Low-side excursion",
-      "hypothesis": "The lot may contain unusually low sensor readings relative to normal-reference behavior.",
+      "cause_family": "Lower-tail excursion",
+      "hypothesis": "The lot may contain an unusual lower-tail sensor pattern relative to normal-reference behavior.",
       "evidence_type": "Sensor low-tail evidence",
-      "recommended_review": "Review possible under-processing, sensor dropout, or low-side transient events."
+      "recommended_review": "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts."
     },
     {
       "feature": "sensor_max",
-      "cause_family": "High-side excursion",
-      "hypothesis": "The lot may contain unusually high sensor readings relative to normal-reference behavior.",
+      "cause_family": "Upper-tail excursion",
+      "hypothesis": "The lot may contain an unusual upper-tail sensor pattern relative to normal-reference behavior.",
       "evidence_type": "Sensor high-tail evidence",
-      "recommended_review": "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+      "recommended_review": "Review upper-tail sensor readings, possible over-processing, transient spikes, tool instability, or boundary shifts."
     },
     {
       "feature": "spc_violation_count",
@@ -72,7 +72,7 @@
       "top_feature": "spc_max_abs_zscore",
       "top_cause_family": "SPC excursion",
       "top_evidence_strength": "critical",
-      "cause_family_summary": "SPC excursion; Low-side excursion; Process instability"
+      "cause_family_summary": "SPC excursion; Lower-tail excursion; Process instability"
     },
     {
       "triage_rank": 2,
@@ -82,7 +82,7 @@
       "top_feature": "spc_max_abs_zscore",
       "top_cause_family": "SPC excursion",
       "top_evidence_strength": "critical",
-      "cause_family_summary": "SPC excursion; Process center shift; Low-side excursion"
+      "cause_family_summary": "SPC excursion; Process center shift; Lower-tail excursion"
     },
     {
       "triage_rank": 3,
@@ -92,7 +92,7 @@
       "top_feature": "spc_max_abs_zscore",
       "top_cause_family": "SPC excursion",
       "top_evidence_strength": "critical",
-      "cause_family_summary": "SPC excursion; Low-side excursion; Process center shift"
+      "cause_family_summary": "SPC excursion; Lower-tail excursion; Process center shift"
     },
     {
       "triage_rank": 4,
@@ -102,7 +102,7 @@
       "top_feature": "spc_max_abs_zscore",
       "top_cause_family": "SPC excursion",
       "top_evidence_strength": "critical",
-      "cause_family_summary": "SPC excursion; Low-side excursion; Process instability"
+      "cause_family_summary": "SPC excursion; Lower-tail excursion; Process instability"
     },
     {
       "triage_rank": 5,
@@ -112,7 +112,7 @@
       "top_feature": "spc_max_abs_zscore",
       "top_cause_family": "SPC excursion",
       "top_evidence_strength": "critical",
-      "cause_family_summary": "SPC excursion; Low-side excursion; Process instability"
+      "cause_family_summary": "SPC excursion; Lower-tail excursion; Process instability"
     },
     {
       "triage_rank": 6,
@@ -122,7 +122,7 @@
       "top_feature": "spc_max_abs_zscore",
       "top_cause_family": "SPC excursion",
       "top_evidence_strength": "critical",
-      "cause_family_summary": "SPC excursion; High-side excursion; Process instability"
+      "cause_family_summary": "SPC excursion; Upper-tail excursion; Process instability"
     },
     {
       "triage_rank": 7,
@@ -132,7 +132,7 @@
       "top_feature": "spc_max_abs_zscore",
       "top_cause_family": "SPC excursion",
       "top_evidence_strength": "critical",
-      "cause_family_summary": "SPC excursion; High-side excursion; Process instability"
+      "cause_family_summary": "SPC excursion; Upper-tail excursion; Process instability"
     },
     {
       "triage_rank": 8,
@@ -142,7 +142,7 @@
       "top_feature": "spc_max_abs_zscore",
       "top_cause_family": "SPC excursion",
       "top_evidence_strength": "critical",
-      "cause_family_summary": "SPC excursion; Process center shift; Low-side excursion"
+      "cause_family_summary": "SPC excursion; Process center shift; Lower-tail excursion"
     },
     {
       "triage_rank": 9,
@@ -152,7 +152,7 @@
       "top_feature": "spc_max_abs_zscore",
       "top_cause_family": "SPC excursion",
       "top_evidence_strength": "critical",
-      "cause_family_summary": "SPC excursion; High-side excursion; Process center shift"
+      "cause_family_summary": "SPC excursion; Upper-tail excursion; Process center shift"
     },
     {
       "triage_rank": 10,
@@ -162,7 +162,7 @@
       "top_feature": "spc_max_abs_zscore",
       "top_cause_family": "SPC excursion",
       "top_evidence_strength": "critical",
-      "cause_family_summary": "SPC excursion; Process instability; High-side excursion"
+      "cause_family_summary": "SPC excursion; Process instability; Upper-tail excursion"
     }
   ],
   "lot_triage_reports": [
@@ -173,7 +173,7 @@
       "max_abs_feature_zscore": 18.83045582157813,
       "top_cause_families": [
         "SPC excursion",
-        "Low-side excursion",
+        "Lower-tail excursion",
         "Process instability"
       ],
       "evidence_items": [
@@ -197,9 +197,9 @@
           "z_score": -11.44475910762225,
           "abs_z_score": 11.44475910762225,
           "evidence_strength": "critical",
-          "cause_family": "Low-side excursion",
-          "hypothesis": "The lot may contain unusually low sensor readings relative to normal-reference behavior.",
-          "recommended_review": "Review possible under-processing, sensor dropout, or low-side transient events."
+          "cause_family": "Lower-tail excursion",
+          "hypothesis": "The lot may contain an unusual lower-tail sensor pattern relative to normal-reference behavior.",
+          "recommended_review": "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts."
         },
         {
           "feature": "sensor_std",
@@ -216,7 +216,7 @@
       ],
       "recommended_reviews": [
         "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
-        "Review possible under-processing, sensor dropout, or low-side transient events.",
+        "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts.",
         "Review tool stability, run-to-run variation, maintenance history, and abnormal sensor fluctuation windows."
       ],
       "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
@@ -229,7 +229,7 @@
       "top_cause_families": [
         "SPC excursion",
         "Process center shift",
-        "Low-side excursion"
+        "Lower-tail excursion"
       ],
       "evidence_items": [
         {
@@ -264,15 +264,15 @@
           "z_score": 3.8801331826945544,
           "abs_z_score": 3.8801331826945544,
           "evidence_strength": "critical",
-          "cause_family": "Low-side excursion",
-          "hypothesis": "The lot may contain unusually low sensor readings relative to normal-reference behavior.",
-          "recommended_review": "Review possible under-processing, sensor dropout, or low-side transient events."
+          "cause_family": "Lower-tail excursion",
+          "hypothesis": "The lot may contain an unusual lower-tail sensor pattern relative to normal-reference behavior.",
+          "recommended_review": "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts."
         }
       ],
       "recommended_reviews": [
         "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
         "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions.",
-        "Review possible under-processing, sensor dropout, or low-side transient events."
+        "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts."
       ],
       "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
     },
@@ -283,7 +283,7 @@
       "max_abs_feature_zscore": 14.499852656570898,
       "top_cause_families": [
         "SPC excursion",
-        "Low-side excursion",
+        "Lower-tail excursion",
         "Process center shift"
       ],
       "evidence_items": [
@@ -307,9 +307,9 @@
           "z_score": -9.168198952900735,
           "abs_z_score": 9.168198952900735,
           "evidence_strength": "critical",
-          "cause_family": "Low-side excursion",
-          "hypothesis": "The lot may contain unusually low sensor readings relative to normal-reference behavior.",
-          "recommended_review": "Review possible under-processing, sensor dropout, or low-side transient events."
+          "cause_family": "Lower-tail excursion",
+          "hypothesis": "The lot may contain an unusual lower-tail sensor pattern relative to normal-reference behavior.",
+          "recommended_review": "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts."
         },
         {
           "feature": "sensor_mean",
@@ -326,7 +326,7 @@
       ],
       "recommended_reviews": [
         "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
-        "Review possible under-processing, sensor dropout, or low-side transient events.",
+        "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts.",
         "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
       ],
       "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
@@ -338,7 +338,7 @@
       "max_abs_feature_zscore": 13.387271395209439,
       "top_cause_families": [
         "SPC excursion",
-        "Low-side excursion",
+        "Lower-tail excursion",
         "Process instability"
       ],
       "evidence_items": [
@@ -362,9 +362,9 @@
           "z_score": -8.583324728226522,
           "abs_z_score": 8.583324728226522,
           "evidence_strength": "critical",
-          "cause_family": "Low-side excursion",
-          "hypothesis": "The lot may contain unusually low sensor readings relative to normal-reference behavior.",
-          "recommended_review": "Review possible under-processing, sensor dropout, or low-side transient events."
+          "cause_family": "Lower-tail excursion",
+          "hypothesis": "The lot may contain an unusual lower-tail sensor pattern relative to normal-reference behavior.",
+          "recommended_review": "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts."
         },
         {
           "feature": "sensor_std",
@@ -381,7 +381,7 @@
       ],
       "recommended_reviews": [
         "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
-        "Review possible under-processing, sensor dropout, or low-side transient events.",
+        "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts.",
         "Review tool stability, run-to-run variation, maintenance history, and abnormal sensor fluctuation windows."
       ],
       "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
@@ -393,7 +393,7 @@
       "max_abs_feature_zscore": 10.730695189723255,
       "top_cause_families": [
         "SPC excursion",
-        "Low-side excursion",
+        "Lower-tail excursion",
         "Process instability"
       ],
       "evidence_items": [
@@ -417,9 +417,9 @@
           "z_score": -7.186785884339858,
           "abs_z_score": 7.186785884339858,
           "evidence_strength": "critical",
-          "cause_family": "Low-side excursion",
-          "hypothesis": "The lot may contain unusually low sensor readings relative to normal-reference behavior.",
-          "recommended_review": "Review possible under-processing, sensor dropout, or low-side transient events."
+          "cause_family": "Lower-tail excursion",
+          "hypothesis": "The lot may contain an unusual lower-tail sensor pattern relative to normal-reference behavior.",
+          "recommended_review": "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts."
         },
         {
           "feature": "sensor_std",
@@ -436,7 +436,7 @@
       ],
       "recommended_reviews": [
         "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
-        "Review possible under-processing, sensor dropout, or low-side transient events.",
+        "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts.",
         "Review tool stability, run-to-run variation, maintenance history, and abnormal sensor fluctuation windows."
       ],
       "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
@@ -448,7 +448,7 @@
       "max_abs_feature_zscore": 9.969851350467115,
       "top_cause_families": [
         "SPC excursion",
-        "High-side excursion",
+        "Upper-tail excursion",
         "Process instability"
       ],
       "evidence_items": [
@@ -472,9 +472,9 @@
           "z_score": 6.094565695377966,
           "abs_z_score": 6.094565695377966,
           "evidence_strength": "critical",
-          "cause_family": "High-side excursion",
-          "hypothesis": "The lot may contain unusually high sensor readings relative to normal-reference behavior.",
-          "recommended_review": "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+          "cause_family": "Upper-tail excursion",
+          "hypothesis": "The lot may contain an unusual upper-tail sensor pattern relative to normal-reference behavior.",
+          "recommended_review": "Review upper-tail sensor readings, possible over-processing, transient spikes, tool instability, or boundary shifts."
         },
         {
           "feature": "sensor_std",
@@ -491,7 +491,7 @@
       ],
       "recommended_reviews": [
         "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
-        "Review possible over-processing, transient spikes, tool instability, or high-side excursion events.",
+        "Review upper-tail sensor readings, possible over-processing, transient spikes, tool instability, or boundary shifts.",
         "Review tool stability, run-to-run variation, maintenance history, and abnormal sensor fluctuation windows."
       ],
       "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
@@ -503,7 +503,7 @@
       "max_abs_feature_zscore": 9.519057212052862,
       "top_cause_families": [
         "SPC excursion",
-        "High-side excursion",
+        "Upper-tail excursion",
         "Process instability"
       ],
       "evidence_items": [
@@ -527,9 +527,9 @@
           "z_score": 7.033846364242802,
           "abs_z_score": 7.033846364242802,
           "evidence_strength": "critical",
-          "cause_family": "High-side excursion",
-          "hypothesis": "The lot may contain unusually high sensor readings relative to normal-reference behavior.",
-          "recommended_review": "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+          "cause_family": "Upper-tail excursion",
+          "hypothesis": "The lot may contain an unusual upper-tail sensor pattern relative to normal-reference behavior.",
+          "recommended_review": "Review upper-tail sensor readings, possible over-processing, transient spikes, tool instability, or boundary shifts."
         },
         {
           "feature": "sensor_std",
@@ -546,7 +546,7 @@
       ],
       "recommended_reviews": [
         "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
-        "Review possible over-processing, transient spikes, tool instability, or high-side excursion events.",
+        "Review upper-tail sensor readings, possible over-processing, transient spikes, tool instability, or boundary shifts.",
         "Review tool stability, run-to-run variation, maintenance history, and abnormal sensor fluctuation windows."
       ],
       "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
@@ -559,7 +559,7 @@
       "top_cause_families": [
         "SPC excursion",
         "Process center shift",
-        "Low-side excursion"
+        "Lower-tail excursion"
       ],
       "evidence_items": [
         {
@@ -594,15 +594,15 @@
           "z_score": -2.5506579821679343,
           "abs_z_score": 2.5506579821679343,
           "evidence_strength": "high",
-          "cause_family": "Low-side excursion",
-          "hypothesis": "The lot may contain unusually low sensor readings relative to normal-reference behavior.",
-          "recommended_review": "Review possible under-processing, sensor dropout, or low-side transient events."
+          "cause_family": "Lower-tail excursion",
+          "hypothesis": "The lot may contain an unusual lower-tail sensor pattern relative to normal-reference behavior.",
+          "recommended_review": "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts."
         }
       ],
       "recommended_reviews": [
         "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
         "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions.",
-        "Review possible under-processing, sensor dropout, or low-side transient events."
+        "Review lower-tail sensor readings, possible under-processing, sensor dropout, or transient boundary shifts."
       ],
       "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
     },
@@ -613,7 +613,7 @@
       "max_abs_feature_zscore": 8.36756367785957,
       "top_cause_families": [
         "SPC excursion",
-        "High-side excursion",
+        "Upper-tail excursion",
         "Process center shift"
       ],
       "evidence_items": [
@@ -637,9 +637,9 @@
           "z_score": 6.375666540659699,
           "abs_z_score": 6.375666540659699,
           "evidence_strength": "critical",
-          "cause_family": "High-side excursion",
-          "hypothesis": "The lot may contain unusually high sensor readings relative to normal-reference behavior.",
-          "recommended_review": "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+          "cause_family": "Upper-tail excursion",
+          "hypothesis": "The lot may contain an unusual upper-tail sensor pattern relative to normal-reference behavior.",
+          "recommended_review": "Review upper-tail sensor readings, possible over-processing, transient spikes, tool instability, or boundary shifts."
         },
         {
           "feature": "sensor_mean",
@@ -656,7 +656,7 @@
       ],
       "recommended_reviews": [
         "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
-        "Review possible over-processing, transient spikes, tool instability, or high-side excursion events.",
+        "Review upper-tail sensor readings, possible over-processing, transient spikes, tool instability, or boundary shifts.",
         "Review process setpoints, chamber matching, calibration records, and lot-level recipe conditions."
       ],
       "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
@@ -669,7 +669,7 @@
       "top_cause_families": [
         "SPC excursion",
         "Process instability",
-        "High-side excursion"
+        "Upper-tail excursion"
       ],
       "evidence_items": [
         {
@@ -704,15 +704,15 @@
           "z_score": 4.96218606634819,
           "abs_z_score": 4.96218606634819,
           "evidence_strength": "critical",
-          "cause_family": "High-side excursion",
-          "hypothesis": "The lot may contain unusually high sensor readings relative to normal-reference behavior.",
-          "recommended_review": "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+          "cause_family": "Upper-tail excursion",
+          "hypothesis": "The lot may contain an unusual upper-tail sensor pattern relative to normal-reference behavior.",
+          "recommended_review": "Review upper-tail sensor readings, possible over-processing, transient spikes, tool instability, or boundary shifts."
         }
       ],
       "recommended_reviews": [
         "Review the strongest SPC excursion, nearby lots, and whether the excursion aligns with known process shifts.",
         "Review tool stability, run-to-run variation, maintenance history, and abnormal sensor fluctuation windows.",
-        "Review possible over-processing, transient spikes, tool instability, or high-side excursion events."
+        "Review upper-tail sensor readings, possible over-processing, transient spikes, tool instability, or boundary shifts."
       ],
       "triage_note": "This is a cause-hypothesis triage report. It links feature evidence to engineering review directions, but it does not prove causal root cause."
     }
