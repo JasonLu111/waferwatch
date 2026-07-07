@@ -544,7 +544,7 @@ Current limitations:
 Recommended technical next steps:
 
 - Add threshold recalibration experiments.
-- Add evidence-grounded root-cause triage module.
+- Add final project packaging and interview narrative.
 - Add unsupervised anomaly detection.
 - Add prediction-score drift monitoring.
 - Add model retraining trigger logic.
@@ -611,3 +611,34 @@ Repeated-seed evaluation makes the model comparison more defensible. In this con
 
 ---
 
+
+
+## 16. Evidence-Grounded Root-Cause Triage
+
+        ### Root-Cause Triage Layer
+
+        The project includes a triage layer that links feature-level evidence to structured cause hypotheses and engineering review directions.
+
+        This module is intentionally framed as **cause-hypothesis triage**, not causal proof.
+
+        | Component | Description |
+        |---|---|
+        | Normal-reference statistics | Computes feature means and standard deviations from normal-reference lots |
+        | Feature evidence ranking | Ranks each lot's features by absolute deviation from normal-reference behavior |
+        | Cause-hypothesis mapping | Maps feature deviations to process, SPC, and sensor-related review hypotheses |
+        | Lot-level triage reports | Produces ranked reports for engineering review |
+
+        ### Example Output Pattern
+
+        ```text
+        Suspicious lot
+        → top abnormal features
+        → cause families
+        → recommended engineering checks
+        ```
+
+        ### Important Limitation
+
+        The triage module does not prove root cause. In a real deployment, hypotheses must be validated using process history, tool logs, maintenance records, metrology, and engineering judgment.
+        ```
+        

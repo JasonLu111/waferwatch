@@ -25,6 +25,7 @@ data validation
 -> Autoencoder anomaly detection baseline
 -> Robustness and ablation experiments
 -> Repeated-seed robustness experiments
+-> Evidence-grounded root-cause triage
 -> model family comparison
 -> cost-sensitive thresholding
 -> batch prediction
@@ -83,6 +84,7 @@ WaferWatch can currently:
 - Train autoencoder-style anomaly detection baseline.
 - Run robustness and ablation experiments.
 - Run repeated-seed robustness experiments.
+- Run evidence-grounded root-cause triage module.
 - Compare Logistic Regression, Random Forest, Gradient Boosting, Isolation Forest, PCA anomaly detection, and Autoencoder-style anomaly detection baselines.
 - Generate Random Forest feature importance.
 - Compare aggregate-only, SPC-enhanced, and feature-selected models.
@@ -128,7 +130,21 @@ Interpretation:
 
 Autoencoder-style anomaly detection captures all held-out failed lots and produces no false alarms in the controlled demo. Together with Isolation Forest and PCA anomaly detection, it strengthens the unsupervised anomaly detection comparison.
 
-### Repeated-Seed Robustness Experiments
+### Evidence-Grounded Root-Cause Triage
+    ### Root-Cause Triage Module Output Status
+
+    The root-cause triage module converts anomaly evidence into structured engineering review outputs.
+
+    | Output | Status |
+    |---|---|
+    | Cause-hypothesis table | Completed |
+    | Feature contribution ranking | Completed |
+    | Lot-level triage reports | Completed |
+    | Recommended engineering review actions | Completed |
+
+    The module is framed as evidence-grounded cause-hypothesis triage. It does not claim causal proof. Its purpose is to help engineers decide what to review next after anomaly detection.
+
+    ### Repeated-Seed Robustness Experiments
 
 | Item | Value |
 |---|---:|

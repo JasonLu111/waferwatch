@@ -64,6 +64,7 @@ The current implementation includes:
 | Autoencoder anomaly detection baseline | Completed |
 | Robustness and ablation experiments | Completed |
 | Repeated-seed robustness experiments | Completed |
+| Evidence-grounded root-cause triage | Completed |
 | Calibration analysis | Completed |
 | Cost-sensitive thresholding | Completed |
 | Batch prediction | Completed |
@@ -77,7 +78,7 @@ The current implementation includes:
 
 Planned later modules include:
 
-- Evidence-grounded root-cause triage module
+- Final project packaging and interview narrative
 - Unsupervised anomaly detection
 - Model explainability
 - Evidence-grounded RAG root-cause triage
@@ -355,7 +356,33 @@ Key finding:
 
 Across repeated train-test splits, the supervised baselines remain stable in this controlled demo. The unsupervised anomaly detectors maintain high recall but show split-sensitive precision and false-alarm behavior. This supports the project argument that unsupervised anomaly detection can be valuable when labels are rare, but threshold control and false-alarm budgeting are operationally important.
 
-### 8.6 Isolation Forest Threshold Tuning
+### 8.6 Evidence-Grounded Root-Cause Triage
+
+    ### Root-Cause Triage Outputs
+
+    | Output | Description |
+    |---|---|
+    | Cause-hypothesis table | Maps features to cause families, evidence types, and recommended review actions |
+    | Feature contribution table | Ranks feature deviations against normal-reference behavior |
+    | Lot triage summary | Prioritizes lots for engineering review |
+    | Lot-level reports | Shows top evidence items, cause hypotheses, and recommended checks |
+
+    ### Example Cause Families
+
+    | Feature | Cause family | Review direction |
+    |---|---|---|
+    | `spc_violation_count` | SPC rule violation | Review control-chart violations and process-window changes |
+    | `spc_max_abs_zscore` | SPC excursion | Review strongest SPC excursion and nearby lots |
+    | `sensor_mean` | Process center shift | Review setpoints, chamber matching, calibration, and recipe context |
+    | `sensor_std` | Process instability | Review tool stability and run-to-run variation |
+    | `sensor_min` | Lower-tail excursion | Review lower-tail sensor readings and possible transient boundary shifts |
+    | `sensor_max` | Upper-tail excursion | Review upper-tail sensor readings and possible transient spikes |
+
+    ### Key Interpretation
+
+    The root-cause triage module turns anomaly detection into an engineering-facing workflow. It gives process and equipment teams a ranked evidence trail while clearly avoiding unsupported causal claims.
+
+    ### 8.7 Isolation Forest Threshold Tuning
 
 Isolation Forest produced strong anomaly ranking performance, but its default decision threshold generated more false alarms than the supervised models. To make the unsupervised workflow more operational, WaferWatch evaluates top-K review and escalation-rate policies.
 
@@ -486,6 +513,7 @@ This alert is triggered because both feature drift and model performance degrada
 | `reports/autoencoder_anomaly_report.md` | Documents autoencoder-style reconstruction-error anomaly detection results |
 | `reports/robustness_ablation_report.md` | Documents feature ablation and anomaly severity stress-test results |
 | `reports/repeated_seed_robustness_report.md` | Documents repeated-seed robustness results across multiple train-test splits |
+| `reports/root_cause_triage_report.md` | Documents evidence-grounded cause hypotheses and lot-level engineering triage reports |
 | `reports/monitoring_alert_summary.md` | Engineer-readable combined alert summary |
 
 ---
@@ -514,7 +542,7 @@ These limitations are documented intentionally to prevent overclaiming.
 Planned next steps:
 
 - Add threshold recalibration experiments.
-- Add evidence-grounded root-cause triage module.
+- Add final project packaging and interview narrative.
 - Add unsupervised anomaly detection models.
 - Add prediction-score drift monitoring.
 - Add model explainability.
