@@ -229,7 +229,7 @@ The current project is still limited by:
 
 Recommended next steps:
 
-- Add evidence-grounded root-cause triage module.
+- Add final project packaging and interview narrative.
 - Add unsupervised anomaly detection baseline.
 - Add prediction-score drift monitoring.
 - Add model explainability.
@@ -249,7 +249,7 @@ Recommended next steps:
 
 The next best implementation step is:
 
-Evidence-grounded root-cause triage module
+Final project packaging and interview narrative
 
     Reason:
 
