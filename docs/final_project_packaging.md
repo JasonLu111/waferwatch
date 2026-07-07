@@ -4,7 +4,6 @@
 
 WaferWatch is an end-to-end manufacturing AI demo for cost-sensitive fab anomaly monitoring and evidence-grounded root-cause triage.
 
-
 It combines data validation, cleaning, SPC-style feature engineering, supervised classification, unsupervised anomaly detection, threshold tuning, monitoring, robustness experiments, and engineering-facing triage reports.
 
 ---
@@ -37,7 +36,6 @@ Raw demo data
 -> Repeated-seed robustness experiments
 -> Evidence-grounded root-cause triage
 -> Final engineering review reports
-
 ```
 
 ---
