@@ -1,3 +1,5 @@
+# WaferWatch Final Project Packaging
+
 ## 1. Project One-Liner
 
 WaferWatch is an end-to-end manufacturing AI demo for cost-sensitive fab anomaly monitoring and evidence-grounded root-cause triage.
