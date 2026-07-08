@@ -615,4 +615,51 @@ clean data
 
 The project is not production-ready, but it demonstrates a serious architecture for cost-sensitive, monitored, human-in-the-loop manufacturing AI.
 
+## Phase R1: UCI SECOM Dataset Pipeline
+
+Phase R1 adds the UCI SECOM public semiconductor manufacturing dataset as the first real sensor-data backbone for WaferWatch.
+
+### Completed outputs
+
+| Output | Status |
+|---|---|
+| `data/raw/secom/secom.data` | Completed |
+| `data/raw/secom/secom_labels.data` | Completed |
+| `data/raw/secom/secom.names` | Completed |
+| `src/data/ingest_secom.py` | Completed |
+| `src/data/validate_secom.py` | Completed |
+| `src/data/clean_secom.py` | Completed |
+| `data/processed/secom_cleaned.csv` | Completed |
+| `reports/secom_data_quality_report.md` | Completed |
+| `reports/secom_class_imbalance_report.md` | Completed |
+
+### Phase R1 commands
+
+```powershell
+python -m src.data.ingest_secom
+python -m src.data.validate_secom
+python -m src.data.clean_secom
+
+## Phase R1 Result
+
+The cleaned SECOM dataset was saved to:
+
+```text
+data/processed/secom_cleaned.csv
+```
+
+Current cleaned dataset shape:
+
+```text
+1567 rows x 449 columns
+```
+
+All remaining missing values were imputed or removed during cleaning.
+
+---
+
+## Scope Control
+
+Phase R1 only adds the UCI SECOM dataset pipeline. It does not include RAG, Docker, GitHub deployment, model training, or MLOps deployment.
+
 
