@@ -7,9 +7,9 @@
 | Required files exist | Passed |
 | Forbidden wording check | Passed |
 | Temporary file check | Passed |
-| Git working tree before this report | Has changes |
+| Git working tree after report commit | Clean |
 
-Note: after this verification report is regenerated, Git may show this report as modified until it is committed.
+Note: this report records the final repository verification status after cleanup.
 
 ## 2. Required File Check
 
