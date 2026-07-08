@@ -245,7 +245,8 @@ The current project is still limited by:
 
 Recommended next steps:
 
-- Add final project packaging and interview narrative.
+- Add final README polish and repository cleanup.
+- Final README polish and repository cleanup
 - Add unsupervised anomaly detection baseline.
 - Add prediction-score drift monitoring.
 - Add model explainability.
@@ -265,7 +266,7 @@ Recommended next steps:
 
 The next best implementation step is:
 
-Final project packaging and interview narrative
+Final README polish and repository cleanup
 
     Reason:
 
