@@ -544,7 +544,7 @@ Current limitations:
 Recommended technical next steps:
 
 - Add threshold recalibration experiments.
-- Add final project packaging and interview narrative.
+- Add final README polish and repository cleanup.
 - Add unsupervised anomaly detection.
 - Add prediction-score drift monitoring.
 - Add model retraining trigger logic.
@@ -632,9 +632,9 @@ Repeated-seed evaluation makes the model comparison more defensible. In this con
 
         ```text
         Suspicious lot
-        → top abnormal features
-        → cause families
-        → recommended engineering checks
+        -> top abnormal features
+        -> cause families
+        -> recommended engineering checks
         ```
 
         ### Important Limitation
@@ -642,3 +642,16 @@ Repeated-seed evaluation makes the model comparison more defensible. In this con
         The triage module does not prove root cause. In a real deployment, hypotheses must be validated using process history, tool logs, maintenance records, metrology, and engineering judgment.
         ```
         
+
+## 17. Final Project Packaging
+
+The project includes a final packaging document for GitHub and interview preparation.
+
+| Document | Purpose |
+|---|---|
+| `docs/final_project_packaging.md` | Summarizes the project story, architecture, technical highlights, reproduction guide, limitations, and interview talking points |
+
+This document helps communicate WaferWatch as an end-to-end manufacturing AI workflow rather than a single-model demo.
+
+---
+

@@ -65,6 +65,7 @@ The current implementation includes:
 | Robustness and ablation experiments | Completed |
 | Repeated-seed robustness experiments | Completed |
 | Evidence-grounded root-cause triage | Completed |
+| Final project packaging and interview narrative | Completed |
 | Calibration analysis | Completed |
 | Cost-sensitive thresholding | Completed |
 | Batch prediction | Completed |
@@ -78,7 +79,7 @@ The current implementation includes:
 
 Planned later modules include:
 
-- Final project packaging and interview narrative
+- Final README polish and repository cleanup
 - Unsupervised anomaly detection
 - Model explainability
 - Evidence-grounded RAG root-cause triage
@@ -514,6 +515,7 @@ This alert is triggered because both feature drift and model performance degrada
 | `reports/robustness_ablation_report.md` | Documents feature ablation and anomaly severity stress-test results |
 | `reports/repeated_seed_robustness_report.md` | Documents repeated-seed robustness results across multiple train-test splits |
 | `reports/root_cause_triage_report.md` | Documents evidence-grounded cause hypotheses and lot-level engineering triage reports |
+| `docs/final_project_packaging.md` | Provides final project story, architecture, reproduction guide, and interview narrative |
 | `reports/monitoring_alert_summary.md` | Engineer-readable combined alert summary |
 
 ---
@@ -542,7 +544,7 @@ These limitations are documented intentionally to prevent overclaiming.
 Planned next steps:
 
 - Add threshold recalibration experiments.
-- Add final project packaging and interview narrative.
+- Add final README polish and repository cleanup.
 - Add unsupervised anomaly detection models.
 - Add prediction-score drift monitoring.
 - Add model explainability.
