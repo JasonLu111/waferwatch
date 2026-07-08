@@ -6,10 +6,10 @@
 |---|---|
 | Required files exist | Passed |
 | Forbidden wording check | Passed |
-| Temporary file check | Needs attention |
+| Temporary file check | Passed |
 | Git working tree before this report | Has changes |
 
-Note: after this verification report is created, Git will show this new report as a change until it is committed.
+Note: after this verification report is regenerated, Git may show this report as modified until it is committed.
 
 ## 2. Required File Check
 
@@ -42,10 +42,7 @@ No forbidden wording was found in checked documentation files.
 
 ## 4. Temporary File Check
 
-| Temporary file |
-|---|
-| `temp_create_final_repository_verification.py` |
-| `.venv\Lib\site-packages\pip\_internal\utils\temp_dir.py` |
+No temporary project files were found by the configured patterns.
 
 ## 5. Final Verification Interpretation
 
