@@ -27,6 +27,7 @@ data validation
 -> Repeated-seed robustness experiments
 -> Evidence-grounded root-cause triage
 -> Final project packaging and interview narrative
+-> Final README polish and repository cleanup
 -> model family comparison
 -> cost-sensitive thresholding
 -> batch prediction
@@ -130,6 +131,18 @@ Interpretation:
 | False alarms per 100 lots | 0.000000 | 0.000000 | 0.000000 | 29.166667 | 4.166667 | 0.000000 |
 
 Autoencoder-style anomaly detection captures all held-out failed lots and produces no false alarms in the controlled demo. Together with Isolation Forest and PCA anomaly detection, it strengthens the unsupervised anomaly detection comparison.
+
+### Final README Polish and Repository Cleanup
+
+The README and repository documentation now include a quick-start section, final report index, and final repository checklist.
+
+| Output | Status |
+|---|---|
+| README quick start | Completed |
+| Final report index | Completed |
+| Final repository checklist | Completed |
+| Generic manufacturing AI positioning | Completed |
+| Company/job-specific wording check | Completed |
 
 ### Final Project Packaging and Interview Narrative
 

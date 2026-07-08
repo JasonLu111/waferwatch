@@ -1,5 +1,30 @@
 ﻿# WaferWatch
 
+## Quick Start
+
+From the project root:
+
+```powershell
+python -m src.data.ingest
+python -m src.data.validate
+python -m src.data.clean
+python -m src.features.spc_features
+python -m src.features.build_features
+python -m src.features.feature_selection
+python -m src.models.family_compare
+python -m src.models.robustness_ablation
+python -m src.models.repeated_seed_robustness
+python -m src.triage.root_cause_triage
+
+```
+
+For the full project story and interview narrative, see:
+
+```text
+docs/final_project_packaging.md
+```
+
+
 **Cost-Sensitive Fab Anomaly Monitoring and Evidence-Grounded Root-Cause Triage**
 
 WaferWatch is a manufacturing AI decision-support project for semiconductor-style anomaly monitoring.
@@ -66,6 +91,7 @@ The current implementation includes:
 | Repeated-seed robustness experiments | Completed |
 | Evidence-grounded root-cause triage | Completed |
 | Final project packaging and interview narrative | Completed |
+| Final README polish and repository cleanup | Completed |
 | Calibration analysis | Completed |
 | Cost-sensitive thresholding | Completed |
 | Batch prediction | Completed |
@@ -79,7 +105,7 @@ The current implementation includes:
 
 Planned later modules include:
 
-- Final README polish and repository cleanup
+- Final repository verification
 - Unsupervised anomaly detection
 - Model explainability
 - Evidence-grounded RAG root-cause triage
@@ -404,6 +430,19 @@ top_5_review
 This selected policy preserves full recall while reducing false alarms to zero in the controlled demo. This result validates the usefulness of top-K review policies for converting anomaly scores into an operational engineer triage queue.
 ---
 
+## Final Report Index
+
+| Report | Purpose |
+|---|---|
+| `docs/final_project_packaging.md` | Final project story, architecture, reproduction guide, and interview narrative |
+| `docs/final_repository_checklist.md` | Final repository quality checklist |
+| `reports/model_card.md` | Model behavior, evaluation, limitations, and experiment summary |
+| `reports/data_card.md` | Data assumptions, limitations, and data quality context |
+| `reports/model_family_comparison_report.md` | Six-model supervised and unsupervised comparison |
+| `reports/robustness_ablation_report.md` | Feature ablation and anomaly severity stress tests |
+| `reports/repeated_seed_robustness_report.md` | Repeated-seed robustness evaluation |
+| `reports/root_cause_triage_report.md` | Evidence-grounded lot-level cause-hypothesis triage |
+
 ## 9. Calibration Analysis
 
 WaferWatch includes calibration analysis because risk scores are later used for thresholding, escalation, and monitoring.
@@ -544,7 +583,7 @@ These limitations are documented intentionally to prevent overclaiming.
 Planned next steps:
 
 - Add threshold recalibration experiments.
-- Add final README polish and repository cleanup.
+- Add final repository verification.
 - Add unsupervised anomaly detection models.
 - Add prediction-score drift monitoring.
 - Add model explainability.
