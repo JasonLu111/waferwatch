@@ -258,8 +258,7 @@ The current project is still limited by:
 
 Recommended next steps:
 
-- Add final README polish and repository cleanup.
-- Final README polish and repository cleanup
+- Final repository verification.
 - Add unsupervised anomaly detection baseline.
 - Add prediction-score drift monitoring.
 - Add model explainability.
@@ -279,7 +278,7 @@ Recommended next steps:
 
 The next best implementation step is:
 
-Final README polish and repository cleanup
+Final repository verification
 
     Reason:
 
