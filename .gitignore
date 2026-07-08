@@ -1,39 +1,32 @@
-﻿@"
+﻿# Python virtual environments
+.venv/
+venv/
+
 # Python cache
 __pycache__/
 *.pyc
 
-# Virtual environment
-.venv/
-venv/
-
 # Jupyter
 .ipynb_checkpoints/
+
+# Data files
+data/raw/
+data/interim/
+data/processed/*.csv
+data/processed/*.parquet
+data/synthetic/*.csv
+
+# Experiment tracking and model artifacts
+mlruns/
+models/
+*.pkl
+*.joblib
+*.onnx
 
 # Environment variables
 .env
 
-# Data files
-data/raw/*
-data/interim/*
-data/processed/*
-data/synthetic/*
-
-# Keep empty data folders
-!data/raw/.gitkeep
-!data/interim/.gitkeep
-!data/processed/.gitkeep
-!data/synthetic/.gitkeep
-
-# Model artifacts
-/models/
-mlruns/
-*.pkl
-*.joblib
-
-# OS / IDE
+# OS / editor files
 .DS_Store
 Thumbs.db
 .vscode/
-"@ | Set-Content .gitignore -Encoding UTF8
-
