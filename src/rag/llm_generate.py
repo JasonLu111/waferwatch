@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import os
-from typing import Dict, List
+from typing import Any, Dict, List
 
 OpenAI = None
 try:
@@ -147,7 +147,7 @@ def validate_llm_answer(answer: str, retrieved: List[Dict[str, object]]) -> tupl
     return True, "OK"
 
 
-def call_openai_responses(client: OpenAI, question: str, retrieved: List[Dict[str, object]], model: str) -> str:
+def call_openai_responses(client: Any, question: str, retrieved: List[Dict[str, object]], model: str) -> str:
     prompt = build_user_prompt(question, retrieved)
 
     response = client.responses.create(
@@ -165,7 +165,7 @@ def call_openai_responses(client: OpenAI, question: str, retrieved: List[Dict[st
     return output_text.strip()
 
 
-def call_openai_chat_completions(client: OpenAI, question: str, retrieved: List[Dict[str, object]], model: str) -> str:
+def call_openai_chat_completions(client: Any, question: str, retrieved: List[Dict[str, object]], model: str) -> str:
     prompt = build_user_prompt(question, retrieved)
 
     response = client.chat.completions.create(
