@@ -30,3 +30,7 @@ models/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Local MLflow state
+mlflow_data/
+mlflow.db
