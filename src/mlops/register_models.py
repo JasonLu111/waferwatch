@@ -349,6 +349,50 @@ def wait_for_registered_version(
         f"for run {run_id}."
     )
 
+def set_and_verify_model_alias(
+    client: MlflowClient,
+    registered_model_name: str,
+    alias: str,
+    expected_version: str,
+    expected_run_id: str,
+    timeout_seconds: int = 30,
+) -> None:
+    """Assign an alias and verify it resolves to the expected model run."""
+
+    deadline = time.time() + timeout_seconds
+    last_observed_version: str | None = None
+    last_observed_run_id: str | None = None
+
+    while time.time() < deadline:
+        client.set_registered_model_alias(
+            name=registered_model_name,
+            alias=alias,
+            version=expected_version,
+        )
+
+        resolved_version = client.get_model_version_by_alias(
+            registered_model_name,
+            alias,
+        )
+
+        last_observed_version = str(resolved_version.version)
+        last_observed_run_id = resolved_version.run_id
+
+        if (
+            last_observed_version == expected_version
+            and last_observed_run_id == expected_run_id
+        ):
+            return
+
+        time.sleep(1)
+
+    raise RuntimeError(
+        "Champion alias verification failed. "
+        f"Expected version={expected_version}, "
+        f"run_id={expected_run_id}; "
+        f"observed version={last_observed_version}, "
+        f"run_id={last_observed_run_id}."
+    )
 
 def print_dry_run_summary(
     report: dict[str, Any],
@@ -561,10 +605,12 @@ def register_models(
         run_id=champion_run_id,
     )
 
-    client.set_registered_model_alias(
-        name=registered_model_name,
+    set_and_verify_model_alias(
+        client=client,
+        registered_model_name=registered_model_name,
         alias=alias,
-        version=champion_version,
+        expected_version=champion_version,
+        expected_run_id=champion_run_id,
     )
 
     client.set_model_version_tag(
