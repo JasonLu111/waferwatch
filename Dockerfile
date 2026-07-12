@@ -5,6 +5,9 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+RUN mkdir -p "/D:/waferwatch" \
+    && ln -s /app/mlflow_data "/D:/waferwatch/mlflow_data"
+
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir --upgrade pip \
