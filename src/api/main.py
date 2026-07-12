@@ -79,6 +79,28 @@ class PredictionResponse(BaseModel):
     model_uri: str
 
 
+class BatchPredictionRequest(BaseModel):
+    """A bounded batch of lot feature records."""
+
+    lots: list[PredictionRequest] = Field(
+        min_length=1,
+        max_length=1000,
+        description="One to 1,000 lots to score in request order.",
+    )
+
+
+class BatchPredictionResponse(BaseModel):
+    """Batch scoring result and shared model metadata."""
+
+    predictions: list[PredictionResponse]
+    n_lots_scored: int
+    n_escalated: int
+    threshold: float
+    model_version: str
+    model_run_id: str
+    model_uri: str
+
+
 def get_registry_client() -> MlflowClient:
     """Create an MLflow client for tracking and registry operations."""
 
@@ -140,7 +162,6 @@ def load_champion_threshold() -> float:
     report = json.loads(
         THRESHOLD_REPORT_PATH.read_text(encoding="utf-8")
     )
-
     threshold = report.get(
         "best_threshold_by_realized_cost",
         {},
@@ -161,6 +182,74 @@ def load_champion_threshold() -> float:
         )
 
     return threshold
+
+
+def validate_feature_columns(features: dict[str, float]) -> None:
+    """Reject incomplete or unexpected feature payloads."""
+
+    missing_columns = [
+        column
+        for column in FEATURE_COLUMNS
+        if column not in features
+    ]
+    unexpected_columns = sorted(
+        set(features) - set(FEATURE_COLUMNS)
+    )
+
+    if missing_columns or unexpected_columns:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "missing_feature_columns": missing_columns,
+                "unexpected_feature_columns": unexpected_columns,
+                "required_feature_columns": FEATURE_COLUMNS,
+            },
+        )
+
+
+def score_lot(
+    request: PredictionRequest,
+    model: Any,
+    threshold: float,
+    version: Any,
+) -> PredictionResponse:
+    """Score one lot using already-resolved model resources."""
+
+    validate_feature_columns(request.features)
+
+    feature_frame = pd.DataFrame(
+        [[request.features[column] for column in FEATURE_COLUMNS]],
+        columns=FEATURE_COLUMNS,
+    )
+
+    if not hasattr(model, "predict_proba"):
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Current champion model does not support probability "
+                "predictions."
+            ),
+        )
+
+    risk_score = float(model.predict_proba(feature_frame)[0, 1])
+    predicted_label = int(risk_score >= threshold)
+
+    return PredictionResponse(
+        lot_id=request.lot_id or "UNSPECIFIED_LOT",
+        risk_score=risk_score,
+        threshold=threshold,
+        predicted_label=predicted_label,
+        recommended_action=(
+            "Escalate for engineer review"
+            if predicted_label == 1
+            else "Release / monitor"
+        ),
+        model_version=str(version.version),
+        model_run_id=version.run_id,
+        model_uri=(
+            f"models:/{REGISTERED_MODEL_NAME}@{MODEL_ALIAS}"
+        ),
+    )
 
 
 @app.get("/")
@@ -201,56 +290,49 @@ def current_model() -> dict[str, str]:
 def predict(request: PredictionRequest) -> PredictionResponse:
     """Score one lot and return its cost-sensitive escalation decision."""
 
-    missing_columns = [
-        column
-        for column in FEATURE_COLUMNS
-        if column not in request.features
-    ]
-    unexpected_columns = sorted(
-        set(request.features) - set(FEATURE_COLUMNS)
+    model = load_champion_model()
+    threshold = load_champion_threshold()
+    version = get_current_model_version()
+
+    return score_lot(
+        request=request,
+        model=model,
+        threshold=threshold,
+        version=version,
     )
 
-    if missing_columns or unexpected_columns:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "missing_feature_columns": missing_columns,
-                "unexpected_feature_columns": unexpected_columns,
-                "required_feature_columns": FEATURE_COLUMNS,
-            },
-        )
 
-    feature_frame = pd.DataFrame(
-        [[request.features[column] for column in FEATURE_COLUMNS]],
-        columns=FEATURE_COLUMNS,
-    )
+@app.post(
+    "/batch_predict",
+    response_model=BatchPredictionResponse,
+)
+def batch_predict(
+    request: BatchPredictionRequest,
+) -> BatchPredictionResponse:
+    """Score a batch of lots with one consistent champion model version."""
 
     model = load_champion_model()
     threshold = load_champion_threshold()
     version = get_current_model_version()
 
-    if not hasattr(model, "predict_proba"):
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Current champion model does not support probability "
-                "predictions."
-            ),
+    predictions = [
+        score_lot(
+            request=lot,
+            model=model,
+            threshold=threshold,
+            version=version,
         )
+        for lot in request.lots
+    ]
 
-    risk_score = float(model.predict_proba(feature_frame)[0, 1])
-    predicted_label = int(risk_score >= threshold)
-
-    return PredictionResponse(
-        lot_id=request.lot_id or "UNSPECIFIED_LOT",
-        risk_score=risk_score,
-        threshold=threshold,
-        predicted_label=predicted_label,
-        recommended_action=(
-            "Escalate for engineer review"
-            if predicted_label == 1
-            else "Release / monitor"
+    return BatchPredictionResponse(
+        predictions=predictions,
+        n_lots_scored=len(predictions),
+        n_escalated=sum(
+            prediction.predicted_label
+            for prediction in predictions
         ),
+        threshold=threshold,
         model_version=str(version.version),
         model_run_id=version.run_id,
         model_uri=(
