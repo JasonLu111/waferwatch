@@ -39,7 +39,11 @@ THRESHOLD_REPORT_PATH = (
     / "reports"
     / "spc_selected_thresholding_report.json"
 )
-
+DRIFT_REPORT_PATH = (
+    PROJECT_ROOT
+    / "reports"
+    / "drift_monitoring_report.json"
+)
 FEATURE_COLUMNS = [
     "sensor_mean",
     "sensor_std",
@@ -133,6 +137,11 @@ class RagQueryResponse(BaseModel):
     answer: str
     generation_mode: str
     top_k: int
+
+class DriftMonitoringResponse(BaseModel):
+    """Latest persisted feature-drift monitoring result."""
+
+    report: dict[str, Any]
 
 
 def get_registry_client() -> MlflowClient:
@@ -406,3 +415,50 @@ def rag_query(request: RagQueryRequest) -> RagQueryResponse:
         generation_mode=request.generation_mode,
         top_k=request.top_k,
     )
+
+
+@app.get(
+    "/monitoring/drift",
+    response_model=DriftMonitoringResponse,
+)
+def monitoring_drift() -> DriftMonitoringResponse:
+    """Return the latest persisted drift monitoring report."""
+
+    if not DRIFT_REPORT_PATH.exists():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Drift monitoring report is unavailable: "
+                f"{DRIFT_REPORT_PATH}"
+            ),
+        )
+
+    try:
+        report = json.loads(
+            DRIFT_REPORT_PATH.read_text(encoding="utf-8")
+        )
+    except json.JSONDecodeError as error:
+        raise HTTPException(
+            status_code=503,
+            detail="Drift monitoring report is not valid JSON.",
+        ) from error
+
+    required_fields = {
+        "overall_drift_detected",
+        "n_features_with_drift",
+        "drifted_features",
+        "thresholds",
+    }
+
+    missing_fields = sorted(required_fields - set(report))
+
+    if missing_fields:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Drift monitoring report is missing required fields: "
+                f"{missing_fields}"
+            ),
+        )
+
+    return DriftMonitoringResponse(report=report)
