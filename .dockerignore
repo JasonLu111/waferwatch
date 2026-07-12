@@ -1,0 +1,13 @@
+.git
+.venv
+.pytest_cache
+__pycache__
+*.py[cod]
+*.pyo
+.env
+.env.*
+mlflow_data
+data/raw
+data/interim
+models
+notebooks
