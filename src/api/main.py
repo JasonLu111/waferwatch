@@ -6,7 +6,7 @@ import json
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import mlflow
 import mlflow.sklearn
@@ -14,6 +14,10 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from mlflow import MlflowClient
 from pydantic import BaseModel, Field
+
+
+from src.rag.generate import answer_question as local_rag_answer
+from src.rag.llm_generate import answer_question_with_openai
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -99,6 +103,36 @@ class BatchPredictionResponse(BaseModel):
     model_version: str
     model_run_id: str
     model_uri: str
+
+class RagQueryRequest(BaseModel):
+    """Evidence-grounded RCA question submitted to the RAG service."""
+
+    query: str = Field(
+        min_length=1,
+        max_length=1000,
+        description="Question about a lot, tool, chamber, or recipe.",
+    )
+    top_k: int = Field(
+        default=5,
+        ge=1,
+        le=10,
+        description="Number of retrieved evidence items to consider.",
+    )
+    generation_mode: Literal["local", "openai"] = Field(
+        default="local",
+        description=(
+            "Use local deterministic generation by default. "
+            "OpenAI generation is used only when explicitly requested."
+        ),
+    )
+
+
+class RagQueryResponse(BaseModel):
+    """Evidence-grounded RAG answer."""
+
+    answer: str
+    generation_mode: str
+    top_k: int
 
 
 def get_registry_client() -> MlflowClient:
@@ -338,4 +372,37 @@ def batch_predict(
         model_uri=(
             f"models:/{REGISTERED_MODEL_NAME}@{MODEL_ALIAS}"
         ),
+    )
+
+
+@app.post("/rag/query", response_model=RagQueryResponse)
+def rag_query(request: RagQueryRequest) -> RagQueryResponse:
+    """Answer an RCA query using retrieved WaferWatch evidence only."""
+
+    try:
+        if request.generation_mode == "openai":
+            answer = answer_question_with_openai(
+                request.query,
+                top_k=request.top_k,
+            )
+        else:
+            answer = local_rag_answer(
+                request.query,
+                top_k=request.top_k,
+            )
+    except FileNotFoundError as error:
+        raise HTTPException(
+            status_code=503,
+            detail=f"RAG knowledge base is unavailable: {error}",
+        ) from error
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"RAG query failed: {error}",
+        ) from error
+
+    return RagQueryResponse(
+        answer=answer,
+        generation_mode=request.generation_mode,
+        top_k=request.top_k,
     )
