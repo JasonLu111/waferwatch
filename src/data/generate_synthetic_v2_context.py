@@ -1847,6 +1847,717 @@ def apply_recipe_product_mix_drift(
 
     return updated_tables
 
+def apply_contextual_anomaly(
+    tables: dict[str, pd.DataFrame],
+    config: dict[str, Any],
+) -> dict[str, pd.DataFrame]:
+    """Inject paired recipe-dependent synthetic anomalies.
+
+    Each pair receives the same synthetic sensor profile.  The Recipe A row is
+    an explicitly normal control, while the Recipe B row is the synthetic
+    anomaly.  This makes the anomaly identifiable only when recipe context is
+    considered.
+    """
+    updated_tables = {
+        table_id: table.copy()
+        for table_id, table in tables.items()
+    }
+
+    mechanism = next(
+        item
+        for item in config["anomaly_mechanisms"]
+        if item["id"] == "contextual_anomaly"
+    )
+    parameters = mechanism["parameters"]
+    lots = updated_tables["lots"].copy()
+
+    required_columns = {
+        "event_time",
+        "tool_id",
+        "chamber_id",
+        "recipe_id",
+        "anomaly_mechanism",
+        "is_synthetic_anomaly",
+        "is_benign_drift",
+        "is_unseen_context",
+    }
+    missing_columns = required_columns.difference(lots.columns)
+
+    if missing_columns:
+        raise ValueError(
+            "contextual_anomaly requires lot columns: "
+            f"{sorted(missing_columns)}"
+        )
+
+    pair_count = max(
+        1,
+        int(
+            len(lots)
+            * float(parameters["injection_rate"])
+        ),
+    )
+
+    previous_mechanisms = {
+        "abrupt_mean_shift",
+        "gradual_degradation",
+        "variance_instability",
+        "sensor_fault",
+    }
+    previous_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in lots.loc[
+            lots["anomaly_mechanism"].isin(previous_mechanisms),
+            ["tool_id", "chamber_id"],
+        ].drop_duplicates().itertuples(index=False)
+    }
+
+    candidates = lots.loc[
+        lots["anomaly_mechanism"].eq("none")
+        & lots["is_synthetic_anomaly"].eq(0)
+        & lots["is_benign_drift"].eq(0)
+        & lots["is_unseen_context"].eq(0)
+    ].copy()
+
+    eligible_contexts: list[tuple[str, str]] = []
+
+    for context, context_lots in candidates.groupby(
+        ["tool_id", "chamber_id"],
+        sort=True,
+    ):
+        normalized_context = (
+            str(context[0]),
+            str(context[1]),
+        )
+
+        if (
+            normalized_context not in previous_contexts
+            and len(context_lots) >= pair_count * 2
+        ):
+            eligible_contexts.append(normalized_context)
+
+    if not eligible_contexts:
+        raise ValueError(
+            "Could not find an unused tool/chamber context with enough "
+            "baseline lots for contextual_anomaly pairs."
+        )
+
+    rng = np.random.default_rng(
+        int(config["random_seed"]) + 606
+    )
+    selected_context = eligible_contexts[
+        int(rng.integers(len(eligible_contexts)))
+    ]
+
+    context_lots = candidates.loc[
+        candidates["tool_id"].astype(str).eq(selected_context[0])
+        & candidates["chamber_id"].astype(str).eq(selected_context[1])
+    ].sort_values("event_time")
+
+    selected_lots = context_lots.iloc[: pair_count * 2].copy()
+    control_indices = selected_lots.iloc[:pair_count].index.to_list()
+    anomaly_indices = selected_lots.iloc[pair_count:].index.to_list()
+
+    sensor_columns = [
+        column
+        for column in lots.columns
+        if column.startswith("sensor_")
+        and pd.to_numeric(
+            lots[column],
+            errors="coerce",
+        ).notna().any()
+    ]
+
+    if not sensor_columns:
+        raise ValueError(
+            "contextual_anomaly requires at least one numeric sensor column."
+        )
+
+    sensor_count = max(
+        1,
+        int(
+            round(
+                len(sensor_columns)
+                * float(parameters["sensor_fraction"])
+            )
+        ),
+    )
+    sensor_count = min(sensor_count, len(sensor_columns))
+
+    selected_sensor_columns = sorted(
+        str(column)
+        for column in rng.choice(
+            sensor_columns,
+            size=sensor_count,
+            replace=False,
+        )
+    )
+    profile_sigma = float(parameters["shared_profile_sigma"])
+
+    for column in selected_sensor_columns:
+        numeric_values = pd.to_numeric(
+            lots[column],
+            errors="coerce",
+        )
+        reference_values = numeric_values.loc[
+            candidates.index
+        ].dropna()
+
+        baseline_mean = float(reference_values.mean())
+        baseline_std = float(reference_values.std(ddof=0))
+
+        if not np.isfinite(baseline_mean):
+            baseline_mean = 0.0
+
+        if not np.isfinite(baseline_std) or baseline_std <= 0:
+            baseline_std = 1.0
+
+        shared_profile = (
+            baseline_mean
+            + rng.normal(
+                loc=0.0,
+                scale=profile_sigma * baseline_std,
+                size=pair_count,
+            )
+        )
+
+        lots.loc[control_indices, column] = shared_profile
+        lots.loc[anomaly_indices, column] = shared_profile
+
+    metadata_defaults: dict[str, Any] = {
+        "is_contextual_control": 0,
+        "contextual_pair_id": "",
+        "contextual_expected_status": "",
+        "contextual_normal_recipe": "",
+        "contextual_anomalous_recipe": "",
+        "contextual_sensor_columns": "",
+        "recipe_context_evidence_id": "",
+    }
+
+    for column, default_value in metadata_defaults.items():
+        if column not in lots.columns:
+            lots[column] = default_value
+
+    pair_ids = [
+        f"CTX_PAIR_{index:03d}"
+        for index in range(1, pair_count + 1)
+    ]
+    normal_recipe_id = str(parameters["normal_recipe_id"])
+    anomalous_recipe_id = str(
+        parameters["anomalous_recipe_id"]
+    )
+    sensor_column_text = "|".join(selected_sensor_columns)
+
+    control_evidence_ids = [
+        f"EVID_CONTEXT_CONTROL_{pair_id}"
+        for pair_id in pair_ids
+    ]
+    anomaly_evidence_ids = [
+        f"EVID_CONTEXT_ANOMALY_{pair_id}"
+        for pair_id in pair_ids
+    ]
+
+    lots.loc[control_indices, "recipe_id"] = normal_recipe_id
+    lots.loc[
+        control_indices,
+        "is_synthetic_anomaly",
+    ] = 0
+    lots.loc[
+        control_indices,
+        "anomaly_mechanism",
+    ] = "none"
+    lots.loc[
+        control_indices,
+        "root_cause_id",
+    ] = "none"
+    lots.loc[
+        control_indices,
+        "is_contextual_control",
+    ] = 1
+    lots.loc[
+        control_indices,
+        "contextual_pair_id",
+    ] = pair_ids
+    lots.loc[
+        control_indices,
+        "contextual_expected_status",
+    ] = "normal"
+    lots.loc[
+        control_indices,
+        "contextual_normal_recipe",
+    ] = normal_recipe_id
+    lots.loc[
+        control_indices,
+        "contextual_anomalous_recipe",
+    ] = anomalous_recipe_id
+    lots.loc[
+        control_indices,
+        "contextual_sensor_columns",
+    ] = sensor_column_text
+    lots.loc[
+        control_indices,
+        "recipe_context_evidence_id",
+    ] = control_evidence_ids
+
+    lots.loc[anomaly_indices, "recipe_id"] = anomalous_recipe_id
+    lots.loc[
+        anomaly_indices,
+        "is_synthetic_anomaly",
+    ] = 1
+    lots.loc[
+        anomaly_indices,
+        "anomaly_mechanism",
+    ] = "contextual_anomaly"
+    lots.loc[
+        anomaly_indices,
+        "root_cause_id",
+    ] = str(parameters["root_cause_id"])
+    lots.loc[
+        anomaly_indices,
+        "is_contextual_control",
+    ] = 0
+    lots.loc[
+        anomaly_indices,
+        "contextual_pair_id",
+    ] = pair_ids
+    lots.loc[
+        anomaly_indices,
+        "contextual_expected_status",
+    ] = "anomalous"
+    lots.loc[
+        anomaly_indices,
+        "contextual_normal_recipe",
+    ] = normal_recipe_id
+    lots.loc[
+        anomaly_indices,
+        "contextual_anomalous_recipe",
+    ] = anomalous_recipe_id
+    lots.loc[
+        anomaly_indices,
+        "contextual_sensor_columns",
+    ] = sensor_column_text
+    lots.loc[
+        anomaly_indices,
+        "recipe_context_evidence_id",
+    ] = anomaly_evidence_ids
+    lots.loc[
+        anomaly_indices,
+        "synthetic_evidence_id",
+    ] = anomaly_evidence_ids
+
+    first_anomaly_lot_id = str(
+        lots.loc[anomaly_indices[0], "lot_id"]
+    )
+    first_anomaly_time = pd.to_datetime(
+        lots.loc[anomaly_indices, "event_time"],
+        errors="raise",
+    ).min()
+    event_start = first_anomaly_time - pd.Timedelta(
+        hours=float(parameters["alarm_lead_hours"])
+    )
+    event_end = event_start + pd.Timedelta(hours=1)
+
+    tool_events = updated_tables["tool_events"].copy()
+    event_row = {
+        column: ""
+        for column in tool_events.columns
+    }
+    event_values = {
+        "event_id": "EVT_CONTEXTUAL_001",
+        "event_type": "recipe_context_alarm",
+        "alarm_code": str(parameters["alarm_code"]),
+        "tool_id": selected_context[0],
+        "chamber_id": selected_context[1],
+        "start_time": event_start.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
+        "end_time": event_end.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
+        "event_time": event_start.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
+        "severity": "high",
+        "related_lot_id": first_anomaly_lot_id,
+        "evidence_id": "EVID_CONTEXT_EVENT_001",
+    }
+
+    for column, value in event_values.items():
+        if column in event_row:
+            event_row[column] = value
+
+    updated_tables["tool_events"] = pd.concat(
+        [
+            tool_events,
+            pd.DataFrame([event_row]),
+        ],
+        ignore_index=True,
+    )
+
+    rca_ground_truth = updated_tables[
+        "rca_ground_truth"
+    ].copy()
+    rca_rows: list[dict[str, Any]] = []
+
+    for sequence, (
+        anomaly_index,
+        control_index,
+        pair_id,
+        anomaly_evidence_id,
+        control_evidence_id,
+    ) in enumerate(
+        zip(
+            anomaly_indices,
+            control_indices,
+            pair_ids,
+            anomaly_evidence_ids,
+            control_evidence_ids,
+        ),
+        start=1,
+    ):
+        rca_row = {
+            column: ""
+            for column in rca_ground_truth.columns
+        }
+        lot_id = str(lots.loc[anomaly_index, "lot_id"])
+        evidence_ids = (
+            "EVID_CONTEXT_EVENT_001;"
+            f"{anomaly_evidence_id};"
+            f"{control_evidence_id}"
+        )
+        rca_values = {
+            "case_id": f"RCA_CONTEXTUAL_{sequence:03d}",
+            "lot_id": lot_id,
+            "root_cause_id": str(
+                parameters["root_cause_id"]
+            ),
+            "suspected_cause": (
+                "Synthetic recipe-context mismatch: the paired "
+                f"{pair_id} sensor profile is normal under "
+                f"{normal_recipe_id} but anomalous under "
+                f"{anomalous_recipe_id}."
+            ),
+            "recommended_action": (
+                "Verify the active recipe, compare only with "
+                "context-matched historical lots, and review recipe "
+                "sensor limits before escalating as tool failure."
+            ),
+            "action": (
+                "Verify active recipe and use context-matched "
+                "historical comparison."
+            ),
+            "outcome": (
+                "Synthetic contextual anomaly injected with a paired "
+                "Recipe A normal control."
+            ),
+            "evidence_ids": evidence_ids,
+            "supports_abstention": False,
+            "top_1_root_cause_id": str(
+                parameters["root_cause_id"]
+            ),
+        }
+
+        for column, value in rca_values.items():
+            if column in rca_row:
+                rca_row[column] = value
+
+        rca_rows.append(rca_row)
+
+    updated_tables["rca_ground_truth"] = pd.concat(
+        [
+            rca_ground_truth,
+            pd.DataFrame(
+                rca_rows,
+                columns=rca_ground_truth.columns,
+            ),
+        ],
+        ignore_index=True,
+    )
+
+    updated_tables["lots"] = lots
+
+    return updated_tables
+
+
+def validate_contextual_anomaly(
+    tables: dict[str, pd.DataFrame],
+    config: dict[str, Any],
+) -> None:
+    """Validate recipe-dependent anomaly/control pairs and their evidence."""
+    mechanism = next(
+        item
+        for item in config["anomaly_mechanisms"]
+        if item["id"] == "contextual_anomaly"
+    )
+    parameters = mechanism["parameters"]
+    lots = tables["lots"]
+
+    expected_count = max(
+        1,
+        int(
+            len(lots)
+            * float(parameters["injection_rate"])
+        ),
+    )
+    root_cause_id = str(parameters["root_cause_id"])
+    normal_recipe_id = str(parameters["normal_recipe_id"])
+    anomalous_recipe_id = str(
+        parameters["anomalous_recipe_id"]
+    )
+
+    contextual_lots = lots.loc[
+        lots["anomaly_mechanism"].eq("contextual_anomaly")
+    ].copy()
+    contextual_controls = lots.loc[
+        lots["is_contextual_control"].eq(1)
+    ].copy()
+
+    if len(contextual_lots) != expected_count:
+        raise ValueError(
+            "contextual_anomaly lot count does not match the configured "
+            f"injection rate. Expected {expected_count}, "
+            f"got {len(contextual_lots)}."
+        )
+
+    if len(contextual_controls) != expected_count:
+        raise ValueError(
+            "contextual_anomaly requires one Recipe A control for each "
+            f"Recipe B anomaly. Expected {expected_count}, "
+            f"got {len(contextual_controls)}."
+        )
+
+    required_columns = {
+        "contextual_pair_id",
+        "contextual_expected_status",
+        "contextual_normal_recipe",
+        "contextual_anomalous_recipe",
+        "contextual_sensor_columns",
+        "recipe_context_evidence_id",
+    }
+    missing_columns = required_columns.difference(lots.columns)
+
+    if missing_columns:
+        raise ValueError(
+            "contextual_anomaly metadata columns are missing: "
+            f"{sorted(missing_columns)}"
+        )
+
+    if not contextual_lots["is_synthetic_anomaly"].eq(1).all():
+        raise ValueError(
+            "contextual_anomaly lots must have "
+            "is_synthetic_anomaly=1."
+        )
+
+    if not contextual_lots["root_cause_id"].eq(
+        root_cause_id
+    ).all():
+        raise ValueError(
+            "contextual_anomaly lots must use "
+            f"{root_cause_id}."
+        )
+
+    if not contextual_lots["recipe_id"].eq(
+        anomalous_recipe_id
+    ).all():
+        raise ValueError(
+            "contextual_anomaly lots must use the anomalous recipe."
+        )
+
+    if not contextual_lots[
+        "contextual_expected_status"
+    ].eq("anomalous").all():
+        raise ValueError(
+            "contextual_anomaly lots must be marked anomalous."
+        )
+
+    if not contextual_controls["is_synthetic_anomaly"].eq(0).all():
+        raise ValueError(
+            "contextual controls must not be labelled as synthetic "
+            "anomalies."
+        )
+
+    if not contextual_controls["anomaly_mechanism"].eq(
+        "none"
+    ).all():
+        raise ValueError(
+            "contextual controls must retain anomaly_mechanism=none."
+        )
+
+    if not contextual_controls["root_cause_id"].eq(
+        "none"
+    ).all():
+        raise ValueError(
+            "contextual controls must retain root_cause_id=none."
+        )
+
+    if not contextual_controls["recipe_id"].eq(
+        normal_recipe_id
+    ).all():
+        raise ValueError(
+            "contextual controls must use the normal recipe."
+        )
+
+    if not contextual_controls[
+        "contextual_expected_status"
+    ].eq("normal").all():
+        raise ValueError(
+            "contextual controls must be marked normal."
+        )
+
+    if contextual_lots[
+        "recipe_context_evidence_id"
+    ].eq("").any():
+        raise ValueError(
+            "contextual_anomaly lots must include recipe-context "
+            "evidence IDs."
+        )
+
+    if contextual_controls[
+        "recipe_context_evidence_id"
+    ].eq("").any():
+        raise ValueError(
+            "contextual controls must include recipe-context evidence IDs."
+        )
+
+    anomaly_pair_ids = set(
+        contextual_lots["contextual_pair_id"].astype(str)
+    )
+    control_pair_ids = set(
+        contextual_controls["contextual_pair_id"].astype(str)
+    )
+
+    if anomaly_pair_ids != control_pair_ids:
+        raise ValueError(
+            "contextual anomalies and controls must have matching pair IDs."
+        )
+
+    if len(anomaly_pair_ids) != expected_count:
+        raise ValueError(
+            "Every contextual anomaly must have exactly one unique pair ID."
+        )
+
+    for pair_id in sorted(anomaly_pair_ids):
+        anomaly_row = contextual_lots.loc[
+            contextual_lots["contextual_pair_id"].eq(pair_id)
+        ]
+        control_row = contextual_controls.loc[
+            contextual_controls["contextual_pair_id"].eq(pair_id)
+        ]
+
+        if len(anomaly_row) != 1 or len(control_row) != 1:
+            raise ValueError(
+                "Each contextual pair must contain exactly one anomaly "
+                f"and one control. Invalid pair: {pair_id}."
+            )
+
+        sensor_columns = [
+            column
+            for column in str(
+                anomaly_row.iloc[0]["contextual_sensor_columns"]
+            ).split("|")
+            if column
+        ]
+
+        if not sensor_columns:
+            raise ValueError(
+                "contextual_anomaly pairs must record injected sensors."
+            )
+
+        anomaly_values = pd.to_numeric(
+            anomaly_row.iloc[0][sensor_columns],
+            errors="coerce",
+        ).to_numpy(dtype=float)
+        control_values = pd.to_numeric(
+            control_row.iloc[0][sensor_columns],
+            errors="coerce",
+        ).to_numpy(dtype=float)
+
+        if not np.allclose(
+            anomaly_values,
+            control_values,
+            rtol=0.0,
+            atol=0.0,
+            equal_nan=True,
+        ):
+            raise ValueError(
+                "A contextual anomaly and its Recipe A control must have "
+                f"the same sensor profile. Invalid pair: {pair_id}."
+            )
+
+    previous_mechanisms = {
+        "abrupt_mean_shift",
+        "gradual_degradation",
+        "variance_instability",
+        "sensor_fault",
+    }
+    previous_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in lots.loc[
+            lots["anomaly_mechanism"].isin(previous_mechanisms),
+            ["tool_id", "chamber_id"],
+        ].drop_duplicates().itertuples(index=False)
+    }
+    contextual_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in contextual_lots[
+            ["tool_id", "chamber_id"]
+        ].drop_duplicates().itertuples(index=False)
+    }
+
+    if len(contextual_contexts) != 1:
+        raise ValueError(
+            "contextual_anomaly must use one dedicated tool/chamber context."
+        )
+
+    if previous_contexts.intersection(contextual_contexts):
+        raise ValueError(
+            "contextual_anomaly must use a context not used by earlier "
+            "synthetic anomaly mechanisms."
+        )
+
+    contextual_events = tables["tool_events"].loc[
+        tables["tool_events"]["event_id"].eq("EVT_CONTEXTUAL_001")
+    ]
+
+    if len(contextual_events) != 1:
+        raise ValueError(
+            "Exactly one contextual-anomaly tool event is required."
+        )
+
+    if not contextual_events["evidence_id"].eq(
+        "EVID_CONTEXT_EVENT_001"
+    ).all():
+        raise ValueError(
+            "The contextual-anomaly event must include its evidence ID."
+        )
+
+    contextual_cases = tables["rca_ground_truth"].loc[
+        tables["rca_ground_truth"]["root_cause_id"].eq(
+            root_cause_id
+        )
+    ]
+
+    if len(contextual_cases) != expected_count:
+        raise ValueError(
+            "Every contextual anomaly must have one RCA ground-truth case."
+        )
+
+    if set(
+        contextual_cases["lot_id"].astype(str)
+    ) != set(
+        contextual_lots["lot_id"].astype(str)
+    ):
+        raise ValueError(
+            "Contextual RCA ground truth must cover exactly the anomaly lots."
+        )
+
+    if not contextual_cases["evidence_ids"].astype(str).str.contains(
+        "EVID_CONTEXT_EVENT_001",
+        regex=False,
+    ).all():
+        raise ValueError(
+            "Contextual RCA cases must cite the recipe-context event."
+        )
+
 def validate_generated_tables(
     tables: dict[str, pd.DataFrame],
     config: dict[str, Any],
@@ -1893,6 +2604,7 @@ def validate_generated_tables(
         "gradual_degradation",
         "variance_instability",
         "sensor_fault",
+        "contextual_anomaly",
     }
 
     if not set(lots["anomaly_mechanism"].unique()).issubset(
@@ -2556,6 +3268,10 @@ def main() -> int:
         tables = apply_recipe_product_mix_drift(
             tables=tables,
             config=config,
+        )
+        tables = apply_contextual_anomaly(
+            tables=tables,
+            config=config,
         )        
         validate_generated_tables(
             tables=tables,
@@ -2568,6 +3284,10 @@ def main() -> int:
             tables=tables,
         )
         validate_recipe_product_mix_drift(
+            tables=tables,
+            config=config,
+        )
+        validate_contextual_anomaly(
             tables=tables,
             config=config,
         )
@@ -2623,6 +3343,21 @@ def main() -> int:
     print(f"Gradual-degradation lots: {gradual_lot_count}")
     print(f"Variance-instability lots: {variance_lot_count}")
     print(f"Sensor-fault lots: {sensor_fault_lot_count}")
+    contextual_anomaly_lots = lots.loc[
+        lots["anomaly_mechanism"].eq("contextual_anomaly")
+    ]
+    contextual_control_lots = lots.loc[
+        lots["is_contextual_control"].eq(1)
+    ]
+
+    print(
+        "Contextual-anomaly lots: "
+        f"{len(contextual_anomaly_lots)}"
+    )
+    print(
+        "Contextual control lots: "
+        f"{len(contextual_control_lots)}"
+    )
     print(f"Benign drift lots: {benign_drift_lot_count}")
     print(f"RCA ground-truth cases: {len(tables['rca_ground_truth'])}")
     print("Written files:")
@@ -2630,16 +3365,16 @@ def main() -> int:
     for written_path in written_paths:
         print(f"- {written_path}")
 
-    print(
+        print(
         "Implemented anomaly mechanisms: abrupt_mean_shift, "
-        "gradual_degradation, variance_instability, sensor_fault"
+        "gradual_degradation, variance_instability, sensor_fault, "
+        "contextual_anomaly"
     )
     print(
-        "Implemented benign drift scenario: "
-        "recipe_product_mix_drift"
+        "Implemented benign drift scenario: recipe_product_mix_drift"
     )
     print(
-        "All other Synthetic Data V2 anomaly mechanisms remain disabled."
+        "All six controlled Synthetic Data V2 mechanisms are enabled."
     )
 
     return 0

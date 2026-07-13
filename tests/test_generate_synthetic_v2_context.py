@@ -15,6 +15,8 @@ from src.data.generate_synthetic_v2_context import (
     validate_recipe_product_mix_drift,
     validate_sensor_faults,
     validate_variance_instability,
+    apply_contextual_anomaly,
+    validate_contextual_anomaly,
 )
 
 from src.data.validate_synthetic_v2_config import load_config
@@ -100,8 +102,14 @@ def test_abrupt_mean_shift_creates_grounded_evidence() -> None:
                 for index in range(1, 101)
             ],
             "sensor_001": list(range(100)),
-            "sensor_002": [index * 2 for index in range(100)],
-            "sensor_003": [index * 3 for index in range(100)],
+            "sensor_002": [
+                index * 2
+                for index in range(100)
+            ],
+            "sensor_003": [
+                index * 3
+                for index in range(100)
+            ],
             "pass_fail_label": [-1] * 100,
         }
     )
@@ -503,5 +511,154 @@ def test_recipe_product_mix_drift_is_benign_and_keeps_sensors_unchanged() -> Non
     assert len(benign_cases) == 3
     assert benign_cases["supports_abstention"].eq(True).all()
 
+def test_contextual_anomaly_requires_recipe_context() -> None:
+    config = load_config(CONFIG_PATH)
 
+    source = pd.DataFrame(
+        {
+            "lot_id": [
+                f"SOURCE_LOT_{index:04d}"
+                for index in range(1, 1568)
+            ],
+            "sensor_001": list(range(1567)),
+            "sensor_002": [
+                index * 2
+                for index in range(1567)
+            ],
+            "sensor_003": [
+                index * 3
+                for index in range(1567)
+            ],
+            "pass_fail_label": [-1] * 1567,
+        }
+    )
+
+    baseline_tables = build_baseline_tables(source, config)
+    abrupt_tables = apply_abrupt_mean_shift(
+        baseline_tables,
+        config,
+    )
+    gradual_tables = apply_gradual_degradation(
+        abrupt_tables,
+        config,
+    )
+    variance_tables = apply_variance_instability(
+        gradual_tables,
+        config,
+    )
+    sensor_fault_tables = apply_sensor_faults(
+        variance_tables,
+        config,
+    )
+    benign_drift_tables = apply_recipe_product_mix_drift(
+        sensor_fault_tables,
+        config,
+    )
+    contextual_tables = apply_contextual_anomaly(
+        benign_drift_tables,
+        config,
+    )
+
+    validate_generated_tables(contextual_tables, config)
+    validate_variance_instability(contextual_tables)
+    validate_sensor_faults(contextual_tables)
+    validate_recipe_product_mix_drift(
+        tables=contextual_tables,
+        config=config,
+    )
+    validate_contextual_anomaly(contextual_tables, config)
+
+    lots = contextual_tables["lots"]
+    expected_count = int(
+        len(source)
+        * config["anomaly_mechanisms"][5]["parameters"][
+            "injection_rate"
+        ]
+    )
+
+    anomaly_lots = lots.loc[
+        lots["anomaly_mechanism"].eq("contextual_anomaly")
+    ].copy()
+    control_lots = lots.loc[
+        lots["is_contextual_control"].eq(1)
+    ].copy()
+
+    assert len(anomaly_lots) == expected_count
+    assert len(control_lots) == expected_count
+    assert anomaly_lots["is_synthetic_anomaly"].eq(1).all()
+    assert control_lots["is_synthetic_anomaly"].eq(0).all()
+    assert control_lots["anomaly_mechanism"].eq("none").all()
+    assert anomaly_lots["root_cause_id"].eq(
+        "RC_RECIPE_CONTEXT_MISMATCH"
+    ).all()
+    assert control_lots["recipe_id"].eq("RCP_A").all()
+    assert anomaly_lots["recipe_id"].eq("RCP_B").all()
+
+    paired_lots = anomaly_lots.merge(
+        control_lots,
+        on="contextual_pair_id",
+        suffixes=("_anomaly", "_control"),
+    )
+    assert len(paired_lots) == expected_count
+
+    sensor_columns = anomaly_lots.iloc[0][
+        "contextual_sensor_columns"
+    ].split("|")
+
+    for column in sensor_columns:
+        assert (
+            paired_lots[f"{column}_anomaly"]
+            == paired_lots[f"{column}_control"]
+        ).all()
+
+    earlier_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in lots.loc[
+            lots["anomaly_mechanism"].isin(
+                {
+                    "abrupt_mean_shift",
+                    "gradual_degradation",
+                    "variance_instability",
+                    "sensor_fault",
+                }
+            ),
+            ["tool_id", "chamber_id"],
+        ].drop_duplicates().itertuples(index=False)
+    }
+    contextual_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in anomaly_lots[
+            ["tool_id", "chamber_id"]
+        ].drop_duplicates().itertuples(index=False)
+    }
+
+    assert len(contextual_contexts) == 1
+    assert not earlier_contexts.intersection(contextual_contexts)
+
+    contextual_events = contextual_tables["tool_events"].loc[
+        contextual_tables["tool_events"]["event_id"].eq(
+            "EVT_CONTEXTUAL_001"
+        )
+    ]
+    assert len(contextual_events) == 1
+    assert contextual_events["alarm_code"].eq(
+        "ALARM_RECIPE_CONTEXT_MISMATCH"
+    ).all()
+    assert contextual_events["evidence_id"].eq(
+        "EVID_CONTEXT_EVENT_001"
+    ).all()
+
+    contextual_cases = contextual_tables["rca_ground_truth"].loc[
+        contextual_tables["rca_ground_truth"]["root_cause_id"].eq(
+            "RC_RECIPE_CONTEXT_MISMATCH"
+        )
+    ]
+    assert len(contextual_cases) == expected_count
+    assert set(contextual_cases["lot_id"]) == set(
+        anomaly_lots["lot_id"]
+    )
+    assert contextual_cases["evidence_ids"].str.contains(
+        "EVID_CONTEXT_EVENT_001",
+        regex=False,
+    ).all()
 

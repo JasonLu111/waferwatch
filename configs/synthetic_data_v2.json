@@ -175,13 +175,15 @@
       "id": "contextual_anomaly",
       "enabled": true,
       "parameters": {
-        "conditioning_fields": [
-          "recipe_id",
-          "product_family"
-        ],
-        "normal_in_one_context": true,
-        "abnormal_in_another_context": true
-      }
+      "injection_rate": 0.03,
+      "sensor_fraction": 0.03,
+      "shared_profile_sigma": 0.35,
+      "normal_recipe_id": "RCP_A",
+      "anomalous_recipe_id": "RCP_B",
+      "alarm_code": "ALARM_RECIPE_CONTEXT_MISMATCH",
+      "alarm_lead_hours": 1.0,
+      "root_cause_id": "RC_RECIPE_CONTEXT_MISMATCH"
+    }
     }
   ],
   "timeline_rules": [
