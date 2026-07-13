@@ -4,6 +4,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from src.data.generate_synthetic_v2_context import (
+    apply_abrupt_mean_shift,
     build_baseline_tables,
     normalize_quality_label,
     validate_generated_tables,
@@ -80,3 +81,53 @@ def test_baseline_tables_match_the_synthetic_v2_contract() -> None:
         "process_changes",
         "rca_ground_truth",
     }
+    
+def test_abrupt_mean_shift_creates_grounded_evidence() -> None:
+    config = load_config(CONFIG_PATH)
+
+    source = pd.DataFrame(
+        {
+            "lot_id": [
+                f"SOURCE_LOT_{index:03d}"
+                for index in range(1, 101)
+            ],
+            "sensor_001": list(range(100)),
+            "sensor_002": [index * 2 for index in range(100)],
+            "sensor_003": [index * 3 for index in range(100)],
+            "pass_fail_label": [-1] * 100,
+        }
+    )
+
+    baseline_tables = build_baseline_tables(source, config)
+    injected_tables = apply_abrupt_mean_shift(
+        baseline_tables,
+        config,
+    )
+
+    validate_generated_tables(injected_tables, config)
+
+    injected_lots = injected_tables["lots"].loc[
+        injected_tables["lots"]["anomaly_mechanism"]
+        == "abrupt_mean_shift"
+    ]
+
+    assert len(injected_lots) == 3
+    assert injected_lots["is_synthetic_anomaly"].eq(1).all()
+    assert injected_lots["root_cause_id"].eq(
+        "RC_PRESSURE_INSTABILITY"
+    ).all()
+    assert injected_lots["synthetic_evidence_id"].ne("").all()
+    assert injected_lots["injected_sensor_columns"].ne("").all()
+    assert injected_lots["abrupt_shift_sigma"].gt(0).all()
+
+    abrupt_events = injected_tables["tool_events"].loc[
+        injected_tables["tool_events"]["event_id"] == "EVT_ABRUPT_001"
+    ]
+    assert len(abrupt_events) == 1
+    assert abrupt_events.iloc[0]["alarm_code"] == "ALARM_PRESSURE_SHIFT"
+
+    abrupt_cases = injected_tables["rca_ground_truth"]
+    assert len(abrupt_cases) == len(injected_lots)
+    assert abrupt_cases["evidence_ids"].str.contains(
+        "EVID_ALARM_ABRUPT_001"
+    ).all()

@@ -321,7 +321,254 @@ def build_baseline_tables(
         "process_changes": process_changes,
         "rca_ground_truth": rca_ground_truth,
     }
+def apply_abrupt_mean_shift(
+    tables: dict[str, pd.DataFrame],
+    config: dict[str, Any],
+) -> dict[str, pd.DataFrame]:
+    updated_tables = {
+        table_id: table.copy()
+        for table_id, table in tables.items()
+    }
 
+    mechanism = next(
+        item
+        for item in config["anomaly_mechanisms"]
+        if item["id"] == "abrupt_mean_shift"
+    )
+    parameters = mechanism["parameters"]
+
+    lots = updated_tables["lots"]
+    tool_events = updated_tables["tool_events"]
+    rca_ground_truth = updated_tables["rca_ground_truth"]
+
+    injection_rate = float(parameters["injection_rate"])
+    sensor_fraction_min, sensor_fraction_max = parameters[
+        "affected_sensor_fraction"
+    ]
+    magnitude_min, magnitude_max = parameters["magnitude_sigma"]
+    alarm_code = str(parameters["alarm_code"])
+    alarm_lead_hours = float(parameters["alarm_lead_hours"])
+
+    if not 0 < injection_rate < 1:
+        raise ValueError(
+            "abrupt_mean_shift injection_rate must be between 0 and 1."
+        )
+
+    injection_lot_count = max(
+        1,
+        int(round(len(lots) * injection_rate)),
+    )
+
+    numeric_sensor_columns = [
+        column
+        for column in lots.columns
+        if str(column).startswith("sensor_")
+        and pd.api.types.is_numeric_dtype(lots[column])
+    ]
+
+    sensor_standard_deviations = lots[numeric_sensor_columns].std(
+        axis=0,
+        ddof=0,
+    )
+    eligible_sensor_columns = [
+        column
+        for column in numeric_sensor_columns
+        if np.isfinite(sensor_standard_deviations[column])
+        and sensor_standard_deviations[column] > 0
+    ]
+
+    if not eligible_sensor_columns:
+        raise ValueError(
+            "No non-constant numeric sensor columns are available for "
+            "abrupt_mean_shift injection."
+        )
+
+    context_sizes = (
+        lots.groupby(["tool_id", "chamber_id"], sort=True)
+        .size()
+        .reset_index(name="lot_count")
+    )
+    eligible_contexts = context_sizes.loc[
+        context_sizes["lot_count"] >= injection_lot_count
+    ].reset_index(drop=True)
+
+    if eligible_contexts.empty:
+        raise ValueError(
+            "No tool/chamber context contains enough lots for the "
+            "configured abrupt_mean_shift injection rate."
+        )
+
+    rng = np.random.default_rng(config["random_seed"] + 101)
+
+    selected_context = eligible_contexts.iloc[
+        rng.integers(low=0, high=len(eligible_contexts))
+    ]
+    selected_tool = str(selected_context["tool_id"])
+    selected_chamber = str(selected_context["chamber_id"])
+
+    episode = (
+        lots.loc[
+            (lots["tool_id"] == selected_tool)
+            & (lots["chamber_id"] == selected_chamber)
+        ]
+        .sort_values("event_time")
+        .head(injection_lot_count)
+        .copy()
+    )
+
+    sensor_fraction = rng.uniform(
+        low=float(sensor_fraction_min),
+        high=float(sensor_fraction_max),
+    )
+    affected_sensor_count = max(
+        1,
+        int(round(len(eligible_sensor_columns) * sensor_fraction)),
+    )
+    affected_sensor_count = min(
+        affected_sensor_count,
+        len(eligible_sensor_columns),
+    )
+
+    affected_sensor_columns = sorted(
+        rng.choice(
+            eligible_sensor_columns,
+            size=affected_sensor_count,
+            replace=False,
+        ).tolist()
+    )
+
+    shift_magnitudes = rng.uniform(
+        low=float(magnitude_min),
+        high=float(magnitude_max),
+        size=affected_sensor_count,
+    )
+
+    episode_indices = episode.index.tolist()
+
+    for sensor_column, sigma_multiplier in zip(
+        affected_sensor_columns,
+        shift_magnitudes,
+    ):
+        shift_amount = (
+            sensor_standard_deviations[sensor_column] * sigma_multiplier
+        )
+        lots[sensor_column] = lots[sensor_column].astype("float64")
+        lots.loc[episode_indices, sensor_column] = (
+            lots.loc[episode_indices, sensor_column] + shift_amount
+        )
+
+    alarm_evidence_id = "EVID_ALARM_ABRUPT_001"
+    affected_sensor_text = ";".join(affected_sensor_columns)
+    average_shift_sigma = float(np.mean(shift_magnitudes))
+
+    lots["synthetic_evidence_id"] = lots.get(
+        "synthetic_evidence_id",
+        "",
+    )
+    lots["injected_sensor_columns"] = lots.get(
+        "injected_sensor_columns",
+        "",
+    )
+    lots["abrupt_shift_sigma"] = lots.get(
+        "abrupt_shift_sigma",
+        np.nan,
+    )
+
+    lots.loc[episode_indices, "is_synthetic_anomaly"] = 1
+    lots.loc[
+        episode_indices,
+        "anomaly_mechanism",
+    ] = "abrupt_mean_shift"
+    lots.loc[
+        episode_indices,
+        "root_cause_id",
+    ] = "RC_PRESSURE_INSTABILITY"
+    lots.loc[
+        episode_indices,
+        "injected_sensor_columns",
+    ] = affected_sensor_text
+    lots.loc[
+        episode_indices,
+        "abrupt_shift_sigma",
+    ] = average_shift_sigma
+    lot_evidence_ids = {
+        str(lot_id): f"EVID_SHIFT_{lot_id}"
+        for lot_id in episode["lot_id"].tolist()
+    }
+
+    lots.loc[
+        episode_indices,
+        "synthetic_evidence_id",
+    ] = [
+        lot_evidence_ids[str(lot_id)]
+        for lot_id in episode["lot_id"].tolist()
+    ]
+
+    first_lot = episode.iloc[0]
+    alarm_start_time = (
+        pd.Timestamp(first_lot["event_time"])
+        - pd.Timedelta(hours=alarm_lead_hours)
+    )
+
+    abrupt_alarm = pd.DataFrame(
+        [
+            {
+                "event_id": "EVT_ABRUPT_001",
+                "tool_id": selected_tool,
+                "chamber_id": selected_chamber,
+                "alarm_code": alarm_code,
+                "event_type": "tool_alarm",
+                "start_time": alarm_start_time,
+                "end_time": alarm_start_time + pd.Timedelta(minutes=30),
+                "severity": "high",
+                "related_lot_id": first_lot["lot_id"],
+                "evidence_id": alarm_evidence_id,
+            }
+        ]
+    )
+
+    updated_tables["tool_events"] = pd.concat(
+        [tool_events, abrupt_alarm],
+        ignore_index=True,
+    )
+
+    rca_records: list[dict[str, Any]] = []
+
+    for case_number, (_, lot) in enumerate(episode.iterrows(), start=1):
+        rca_records.append(
+            {
+                "case_id": f"RCA_ABRUPT_{case_number:03d}",
+                "lot_id": lot["lot_id"],
+                "root_cause_id": "RC_PRESSURE_INSTABILITY",
+                "suspected_cause": (
+                    "Synthetic abrupt process mean shift in a correlated "
+                    "sensor group."
+                ),
+                "recommended_action": (
+                    "Inspect chamber pressure-control behavior, compare "
+                    "adjacent lots, and verify sensor calibration."
+                ),
+                "outcome": (
+                    "Synthetic anomaly injected for controlled evaluation."
+                ),
+                "evidence_ids": (
+                    f"{alarm_evidence_id};"
+                    f"{lot_evidence_ids[str(lot['lot_id'])]}"
+                ),
+                "supports_abstention": False,
+                "top3_acceptable_causes": "RC_PRESSURE_INSTABILITY",
+            }
+        )
+
+    abrupt_rca = pd.DataFrame(rca_records)
+
+    updated_tables["rca_ground_truth"] = pd.concat(
+        [rca_ground_truth, abrupt_rca],
+        ignore_index=True,
+    )
+    updated_tables["lots"] = lots
+
+    return updated_tables
 
 def validate_generated_tables(
     tables: dict[str, pd.DataFrame],
@@ -363,19 +610,75 @@ def validate_generated_tables(
             "Every label_available_at must occur after event_time."
         )
 
-    if lots["is_synthetic_anomaly"].ne(0).any():
+    allowed_mechanisms = {"none", "abrupt_mean_shift"}
+
+    if not set(lots["anomaly_mechanism"].unique()).issubset(
+        allowed_mechanisms
+    ):
         raise ValueError(
-            "The baseline context generator must not inject anomalies."
+            "Only 'none' and 'abrupt_mean_shift' are allowed in this "
+            "checkpoint."
         )
 
-    if lots["anomaly_mechanism"].ne("none").any():
+    abrupt_lots = lots.loc[
+        lots["anomaly_mechanism"] == "abrupt_mean_shift"
+    ]
+
+    if abrupt_lots.empty:
+        return
+
+    if not abrupt_lots["is_synthetic_anomaly"].eq(1).all():
         raise ValueError(
-            "Baseline anomaly_mechanism values must all be 'none'."
+            "abrupt_mean_shift lots must have is_synthetic_anomaly=1."
         )
 
-    if lots["root_cause_id"].ne("none").any():
+    if not abrupt_lots["root_cause_id"].eq(
+        "RC_PRESSURE_INSTABILITY"
+    ).all():
         raise ValueError(
-            "Baseline root_cause_id values must all be 'none'."
+            "abrupt_mean_shift lots must use "
+            "RC_PRESSURE_INSTABILITY."
+        )
+
+    required_abrupt_columns = {
+        "synthetic_evidence_id",
+        "injected_sensor_columns",
+        "abrupt_shift_sigma",
+    }
+
+    missing_abrupt_columns = required_abrupt_columns.difference(
+        abrupt_lots.columns
+    )
+
+    if missing_abrupt_columns:
+        raise ValueError(
+            "abrupt_mean_shift lots are missing required metadata: "
+            f"{sorted(missing_abrupt_columns)}"
+        )
+
+    if abrupt_lots["synthetic_evidence_id"].eq("").any():
+        raise ValueError(
+            "abrupt_mean_shift lots must contain evidence IDs."
+        )
+
+    abrupt_events = tables["tool_events"].loc[
+        tables["tool_events"]["event_id"] == "EVT_ABRUPT_001"
+    ]
+
+    if len(abrupt_events) != 1:
+        raise ValueError(
+            "Exactly one abrupt_mean_shift tool-alarm event is required."
+        )
+
+    abrupt_cases = tables["rca_ground_truth"].loc[
+        tables["rca_ground_truth"]["root_cause_id"]
+        == "RC_PRESSURE_INSTABILITY"
+    ]
+
+    if len(abrupt_cases) != len(abrupt_lots):
+        raise ValueError(
+            "Every abrupt_mean_shift lot must have one RCA ground-truth "
+            "case."
         )
 
 
@@ -452,6 +755,11 @@ def main() -> int:
             base_frame=base_frame,
             config=config,
         )
+        tables = apply_abrupt_mean_shift(
+            tables=tables,
+            config=config,
+        )
+        
         validate_generated_tables(
             tables=tables,
             config=config,
@@ -486,16 +794,24 @@ def main() -> int:
     print(f"Sensor columns retained: {base_frame.shape[1] - 1}")
     print(f"Generated lots: {len(lots)}")
     print(f"Unseen-context lots: {unseen_lot_count}")
-    print("Injected synthetic anomalies: 0")
-    print("RCA ground-truth cases: 0")
+    abrupt_lot_count = int(
+        lots["anomaly_mechanism"].eq("abrupt_mean_shift").sum()
+    )
+
+    print(
+        f"Injected synthetic anomalies: "
+        f"{int(lots['is_synthetic_anomaly'].sum())}"
+    )
+    print(f"Abrupt mean-shift lots: {abrupt_lot_count}")
+    print(f"RCA ground-truth cases: {len(tables['rca_ground_truth'])}")
     print("Written files:")
 
     for written_path in written_paths:
         print(f"- {written_path}")
 
+    print("Implemented mechanism: abrupt_mean_shift")
     print(
-        "Baseline context only: anomaly injection begins in a later "
-        "Synthetic Data V2 checkpoint."
+        "All other Synthetic Data V2 anomaly mechanisms remain disabled."
     )
 
     return 0

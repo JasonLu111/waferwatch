@@ -62,6 +62,7 @@
       "id": "abrupt_mean_shift",
       "enabled": true,
       "parameters": {
+        "injection_rate": 0.03,
         "affected_sensor_fraction": [
           0.02,
           0.05
@@ -73,9 +74,19 @@
         "context_scope": [
           "tool_id",
           "chamber_id"
+        ],
+        "alarm_code": "ALARM_PRESSURE_SHIFT",
+        "alarm_lead_hours": 2.0
+      },
+        "magnitude_sigma": [
+          2.0,
+          4.0
+        ],
+        "context_scope": [
+          "tool_id",
+          "chamber_id"
         ]
-      }
-    },
+      },
     {
       "id": "gradual_degradation",
       "enabled": true,
