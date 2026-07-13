@@ -569,6 +569,327 @@ def apply_abrupt_mean_shift(
     updated_tables["lots"] = lots
 
     return updated_tables
+def apply_gradual_degradation(
+    tables: dict[str, pd.DataFrame],
+    config: dict[str, Any],
+) -> dict[str, pd.DataFrame]:
+    updated_tables = {
+        table_id: table.copy()
+        for table_id, table in tables.items()
+    }
+
+    mechanism = next(
+        item
+        for item in config["anomaly_mechanisms"]
+        if item["id"] == "gradual_degradation"
+    )
+    parameters = mechanism["parameters"]
+
+    lots = updated_tables["lots"]
+    maintenance = updated_tables["maintenance"]
+    rca_ground_truth = updated_tables["rca_ground_truth"]
+
+    injection_rate = float(parameters["injection_rate"])
+    sensor_fraction_min, sensor_fraction_max = parameters[
+        "affected_sensor_fraction"
+    ]
+    minimum_window, maximum_window = parameters[
+        "degradation_window_lots"
+    ]
+    magnitude_min, magnitude_max = parameters[
+        "maximum_magnitude_sigma"
+    ]
+    delay_min_days, delay_max_days = parameters[
+        "maintenance_delay_days"
+    ]
+    maintenance_type = str(parameters["maintenance_type"])
+    component = str(parameters["component"])
+
+    if not 0 < injection_rate < 1:
+        raise ValueError(
+            "gradual_degradation injection_rate must be between 0 and 1."
+        )
+
+    injection_lot_count = max(
+        1,
+        int(round(len(lots) * injection_rate)),
+    )
+
+    if not minimum_window <= injection_lot_count <= maximum_window:
+        raise ValueError(
+            "gradual_degradation injection_lot_count must fall within "
+            "degradation_window_lots."
+        )
+
+    numeric_sensor_columns = [
+        column
+        for column in lots.columns
+        if str(column).startswith("sensor_")
+        and pd.api.types.is_numeric_dtype(lots[column])
+    ]
+
+    sensor_standard_deviations = lots[numeric_sensor_columns].std(
+        axis=0,
+        ddof=0,
+    )
+    eligible_sensor_columns = [
+        column
+        for column in numeric_sensor_columns
+        if np.isfinite(sensor_standard_deviations[column])
+        and sensor_standard_deviations[column] > 0
+    ]
+
+    if not eligible_sensor_columns:
+        raise ValueError(
+            "No non-constant numeric sensor columns are available for "
+            "gradual_degradation injection."
+        )
+
+    used_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in lots.loc[
+            lots["anomaly_mechanism"] != "none",
+            ["tool_id", "chamber_id"],
+        ].itertuples(index=False)
+    }
+
+    context_sizes = (
+        lots.groupby(["tool_id", "chamber_id"], sort=True)
+        .size()
+        .reset_index(name="lot_count")
+    )
+    eligible_contexts = context_sizes.loc[
+        context_sizes["lot_count"] >= injection_lot_count
+    ].copy()
+
+    eligible_contexts = eligible_contexts.loc[
+        ~eligible_contexts.apply(
+            lambda row: (
+                str(row["tool_id"]),
+                str(row["chamber_id"]),
+            )
+            in used_contexts,
+            axis=1,
+        )
+    ].reset_index(drop=True)
+
+    if eligible_contexts.empty:
+        raise ValueError(
+            "No unused tool/chamber context contains enough lots for "
+            "gradual_degradation."
+        )
+
+    rng = np.random.default_rng(config["random_seed"] + 202)
+
+    selected_context = eligible_contexts.iloc[
+        rng.integers(low=0, high=len(eligible_contexts))
+    ]
+    selected_tool = str(selected_context["tool_id"])
+    selected_chamber = str(selected_context["chamber_id"])
+
+    episode = (
+        lots.loc[
+            (lots["tool_id"] == selected_tool)
+            & (lots["chamber_id"] == selected_chamber)
+        ]
+        .sort_values("event_time")
+        .head(injection_lot_count)
+        .copy()
+    )
+    episode_indices = episode.index.tolist()
+
+    sensor_fraction = rng.uniform(
+        low=float(sensor_fraction_min),
+        high=float(sensor_fraction_max),
+    )
+    affected_sensor_count = max(
+        1,
+        int(round(len(eligible_sensor_columns) * sensor_fraction)),
+    )
+    affected_sensor_count = min(
+        affected_sensor_count,
+        len(eligible_sensor_columns),
+    )
+
+    affected_sensor_columns = sorted(
+        rng.choice(
+            eligible_sensor_columns,
+            size=affected_sensor_count,
+            replace=False,
+        ).tolist()
+    )
+
+    final_shift_magnitudes = rng.uniform(
+        low=float(magnitude_min),
+        high=float(magnitude_max),
+        size=affected_sensor_count,
+    )
+    degradation_progress = np.linspace(
+        start=1 / injection_lot_count,
+        stop=1.0,
+        num=injection_lot_count,
+    )
+
+    for sensor_column, final_sigma_multiplier in zip(
+        affected_sensor_columns,
+        final_shift_magnitudes,
+    ):
+        final_shift_amount = (
+            sensor_standard_deviations[sensor_column]
+            * final_sigma_multiplier
+        )
+        lots[sensor_column] = lots[sensor_column].astype("float64")
+        lots.loc[episode_indices, sensor_column] = (
+            lots.loc[episode_indices, sensor_column].to_numpy()
+            + final_shift_amount * degradation_progress
+        )
+
+    maintenance_delay_days = int(
+        rng.integers(
+            low=int(delay_min_days),
+            high=int(delay_max_days) + 1,
+        )
+    )
+    maintenance_evidence_id = "EVID_MAINT_DELAY_GRADUAL_001"
+    affected_sensor_text = ";".join(affected_sensor_columns)
+    average_final_sigma = float(np.mean(final_shift_magnitudes))
+
+    if "synthetic_evidence_id" not in lots.columns:
+        lots["synthetic_evidence_id"] = ""
+
+    if "injected_sensor_columns" not in lots.columns:
+        lots["injected_sensor_columns"] = ""
+
+    if "degradation_progress" not in lots.columns:
+        lots["degradation_progress"] = np.nan
+
+    if "degradation_final_sigma" not in lots.columns:
+        lots["degradation_final_sigma"] = np.nan
+
+    if "maintenance_evidence_id" not in lots.columns:
+        lots["maintenance_evidence_id"] = ""
+
+    lot_evidence_ids = {
+        str(lot_id): f"EVID_DEGRADATION_{lot_id}"
+        for lot_id in episode["lot_id"].tolist()
+    }
+
+    lots.loc[episode_indices, "is_synthetic_anomaly"] = 1
+    lots.loc[
+        episode_indices,
+        "anomaly_mechanism",
+    ] = "gradual_degradation"
+    lots.loc[
+        episode_indices,
+        "root_cause_id",
+    ] = "RC_COMPONENT_WEAR"
+    lots.loc[
+        episode_indices,
+        "injected_sensor_columns",
+    ] = affected_sensor_text
+    lots.loc[
+        episode_indices,
+        "degradation_progress",
+    ] = degradation_progress
+    lots.loc[
+        episode_indices,
+        "degradation_final_sigma",
+    ] = average_final_sigma
+    lots.loc[
+        episode_indices,
+        "maintenance_evidence_id",
+    ] = maintenance_evidence_id
+    lots.loc[
+        episode_indices,
+        "synthetic_evidence_id",
+    ] = [
+        lot_evidence_ids[str(lot_id)]
+        for lot_id in episode["lot_id"].tolist()
+    ]
+
+    first_lot = episode.iloc[0]
+    scheduled_at = (
+        pd.Timestamp(first_lot["event_time"])
+        - pd.Timedelta(days=maintenance_delay_days)
+    )
+    performed_at = pd.Timestamp(first_lot["event_time"])
+
+    delayed_maintenance = pd.DataFrame(
+        [
+            {
+                "maintenance_id": "MAINT_GRADUAL_001",
+                "tool_id": selected_tool,
+                "chamber_id": selected_chamber,
+                "scheduled_at": scheduled_at,
+                "performed_at": performed_at,
+                "delay_days": maintenance_delay_days,
+                "maintenance_type": maintenance_type,
+                "component": component,
+                "replacement_performed": False,
+                "related_lot_id": first_lot["lot_id"],
+                "evidence_id": maintenance_evidence_id,
+            }
+        ]
+    )
+
+    updated_tables["maintenance"] = pd.concat(
+        [maintenance, delayed_maintenance],
+        ignore_index=True,
+    )
+
+    rca_records: list[dict[str, Any]] = []
+
+    for case_number, (_, lot) in enumerate(episode.iterrows(), start=1):
+        rca_records.append(
+            {
+                "case_id": f"RCA_GRADUAL_{case_number:03d}",
+                "lot_id": lot["lot_id"],
+                "root_cause_id": "RC_COMPONENT_WEAR",
+                "suspected_cause": (
+                    "Synthetic gradual component wear after delayed "
+                    "preventive inspection."
+                ),
+                "recommended_action": (
+                    "Inspect the pressure-control valve, compare the "
+                    "chamber trend before and after the delayed "
+                    "maintenance date, and schedule replacement if "
+                    "degradation persists."
+                ),
+                "outcome": (
+                    "Synthetic gradual degradation injected for "
+                    "controlled evaluation."
+                ),
+                "evidence_ids": (
+                    f"{maintenance_evidence_id};"
+                    f"{lot_evidence_ids[str(lot['lot_id'])]}"
+                ),
+                "supports_abstention": False,
+                "top3_acceptable_causes": "RC_COMPONENT_WEAR",
+            }
+        )
+
+    gradual_rca = pd.DataFrame(rca_records)
+
+    updated_tables["rca_ground_truth"] = pd.concat(
+        [rca_ground_truth, gradual_rca],
+        ignore_index=True,
+    )
+    updated_tables["lots"] = lots
+
+    return updated_tables
+
+
+def apply_variance_instability(
+    tables: dict[str, pd.DataFrame],
+    config: dict[str, Any],
+) -> dict[str, pd.DataFrame]:
+    """Placeholder no-op for variance instability mechanism.
+
+    The full implementation is not required for this checkpoint; keep
+    tables unchanged and return them.
+    """
+    # Make a shallow copy of tables to preserve original inputs
+    return {table_id: table.copy() for table_id, table in tables.items()}
 
 def validate_generated_tables(
     tables: dict[str, pd.DataFrame],
@@ -610,7 +931,15 @@ def validate_generated_tables(
             "Every label_available_at must occur after event_time."
         )
 
-    allowed_mechanisms = {"none", "abrupt_mean_shift"}
+    allowed_mechanisms = {
+        "none",
+        "abrupt_mean_shift",
+        "gradual_degradation",
+        "variance_instability",
+        "sensor_fault",
+        "recipe_product_mix_drift",
+        "contextual_anomaly"
+    }
 
     if not set(lots["anomaly_mechanism"].unique()).issubset(
         allowed_mechanisms
@@ -680,7 +1009,110 @@ def validate_generated_tables(
             "Every abrupt_mean_shift lot must have one RCA ground-truth "
             "case."
         )
+    gradual_lots = lots.loc[
+        lots["anomaly_mechanism"] == "gradual_degradation"
+    ]
 
+    if gradual_lots.empty:
+        return
+
+    if not gradual_lots["is_synthetic_anomaly"].eq(1).all():
+        raise ValueError(
+            "gradual_degradation lots must have "
+            "is_synthetic_anomaly=1."
+        )
+
+    if not gradual_lots["root_cause_id"].eq(
+        "RC_COMPONENT_WEAR"
+    ).all():
+        raise ValueError(
+            "gradual_degradation lots must use RC_COMPONENT_WEAR."
+        )
+
+    required_gradual_columns = {
+        "synthetic_evidence_id",
+        "injected_sensor_columns",
+        "degradation_progress",
+        "degradation_final_sigma",
+        "maintenance_evidence_id",
+    }
+
+    missing_gradual_columns = required_gradual_columns.difference(
+        gradual_lots.columns
+    )
+
+    if missing_gradual_columns:
+        raise ValueError(
+            "gradual_degradation lots are missing metadata: "
+            f"{sorted(missing_gradual_columns)}"
+        )
+
+    if gradual_lots["synthetic_evidence_id"].eq("").any():
+        raise ValueError(
+            "gradual_degradation lots must contain evidence IDs."
+        )
+
+    if gradual_lots["maintenance_evidence_id"].ne(
+        "EVID_MAINT_DELAY_GRADUAL_001"
+    ).any():
+        raise ValueError(
+            "gradual_degradation lots must reference the delayed "
+            "maintenance evidence ID."
+        )
+
+    ordered_progress = gradual_lots.sort_values(
+        "event_time"
+    )["degradation_progress"]
+
+    if not ordered_progress.is_monotonic_increasing:
+        raise ValueError(
+            "gradual_degradation progress must increase over time."
+        )
+
+    abrupt_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in abrupt_lots[
+            ["tool_id", "chamber_id"]
+        ].drop_duplicates().itertuples(index=False)
+    }
+    gradual_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in gradual_lots[
+            ["tool_id", "chamber_id"]
+        ].drop_duplicates().itertuples(index=False)
+    }
+
+    if abrupt_contexts.intersection(gradual_contexts):
+        raise ValueError(
+            "gradual_degradation must use a different tool/chamber "
+            "context from abrupt_mean_shift."
+        )
+
+    delayed_maintenance = tables["maintenance"].loc[
+        tables["maintenance"]["maintenance_id"]
+        == "MAINT_GRADUAL_001"
+    ]
+
+    if len(delayed_maintenance) != 1:
+        raise ValueError(
+            "Exactly one delayed-maintenance record is required."
+        )
+
+    if int(delayed_maintenance.iloc[0]["delay_days"]) <= 0:
+        raise ValueError(
+            "gradual_degradation maintenance delay must be positive."
+        )
+
+    gradual_cases = tables["rca_ground_truth"].loc[
+        tables["rca_ground_truth"]["root_cause_id"]
+        == "RC_COMPONENT_WEAR"
+    ]
+
+    if len(gradual_cases) != len(gradual_lots):
+        raise ValueError(
+            "Every gradual_degradation lot must have one RCA "
+            "ground-truth case."
+        )
 
 def write_generated_tables(
     tables: dict[str, pd.DataFrame],
@@ -759,8 +1191,11 @@ def main() -> int:
             tables=tables,
             config=config,
         )
-        
-        validate_generated_tables(
+        tables = apply_gradual_degradation(
+            tables=tables,
+            config=config,
+        )
+        tables = apply_variance_instability(
             tables=tables,
             config=config,
         )
@@ -797,19 +1232,26 @@ def main() -> int:
     abrupt_lot_count = int(
         lots["anomaly_mechanism"].eq("abrupt_mean_shift").sum()
     )
+    gradual_lot_count = int(
+        lots["anomaly_mechanism"].eq("gradual_degradation").sum()
+    )
 
     print(
         f"Injected synthetic anomalies: "
         f"{int(lots['is_synthetic_anomaly'].sum())}"
     )
     print(f"Abrupt mean-shift lots: {abrupt_lot_count}")
+    print(f"Gradual-degradation lots: {gradual_lot_count}")
     print(f"RCA ground-truth cases: {len(tables['rca_ground_truth'])}")
     print("Written files:")
 
     for written_path in written_paths:
         print(f"- {written_path}")
 
-    print("Implemented mechanism: abrupt_mean_shift")
+    print(
+        "Implemented mechanisms: abrupt_mean_shift, "
+        "gradual_degradation"
+    )
     print(
         "All other Synthetic Data V2 anomaly mechanisms remain disabled."
     )

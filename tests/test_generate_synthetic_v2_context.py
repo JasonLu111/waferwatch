@@ -5,6 +5,7 @@ from pandas.testing import assert_frame_equal
 
 from src.data.generate_synthetic_v2_context import (
     apply_abrupt_mean_shift,
+    apply_gradual_degradation,
     build_baseline_tables,
     normalize_quality_label,
     validate_generated_tables,
@@ -130,4 +131,85 @@ def test_abrupt_mean_shift_creates_grounded_evidence() -> None:
     assert len(abrupt_cases) == len(injected_lots)
     assert abrupt_cases["evidence_ids"].str.contains(
         "EVID_ALARM_ABRUPT_001"
+    ).all()
+
+
+def test_gradual_degradation_creates_delayed_maintenance_evidence() -> None:
+    config = load_config(CONFIG_PATH)
+
+    source = pd.DataFrame(
+        {
+            "lot_id": [
+                f"SOURCE_LOT_{index:04d}"
+                for index in range(1, 1001)
+            ],
+            "sensor_001": list(range(1000)),
+            "sensor_002": [index * 2 for index in range(1000)],
+            "sensor_003": [index * 3 for index in range(1000)],
+            "pass_fail_label": [-1] * 1000,
+        }
+    )
+
+    baseline_tables = build_baseline_tables(source, config)
+    abrupt_tables = apply_abrupt_mean_shift(
+        baseline_tables,
+        config,
+    )
+    injected_tables = apply_gradual_degradation(
+        abrupt_tables,
+        config,
+    )
+
+    validate_generated_tables(injected_tables, config)
+
+    lots = injected_tables["lots"]
+    abrupt_lots = lots.loc[
+        lots["anomaly_mechanism"] == "abrupt_mean_shift"
+    ]
+    gradual_lots = lots.loc[
+        lots["anomaly_mechanism"] == "gradual_degradation"
+    ]
+
+    assert len(gradual_lots) == 30
+    assert gradual_lots["is_synthetic_anomaly"].eq(1).all()
+    assert gradual_lots["root_cause_id"].eq(
+        "RC_COMPONENT_WEAR"
+    ).all()
+    assert gradual_lots["synthetic_evidence_id"].ne("").all()
+    assert gradual_lots["maintenance_evidence_id"].eq(
+        "EVID_MAINT_DELAY_GRADUAL_001"
+    ).all()
+    assert gradual_lots["degradation_final_sigma"].gt(0).all()
+
+    progress = gradual_lots.sort_values(
+        "event_time"
+    )["degradation_progress"]
+    assert progress.is_monotonic_increasing
+    assert progress.iloc[-1] == 1.0
+
+    abrupt_contexts = set(
+        zip(abrupt_lots["tool_id"], abrupt_lots["chamber_id"])
+    )
+    gradual_contexts = set(
+        zip(gradual_lots["tool_id"], gradual_lots["chamber_id"])
+    )
+    assert abrupt_contexts.isdisjoint(gradual_contexts)
+
+    delayed_maintenance = injected_tables["maintenance"].loc[
+        injected_tables["maintenance"]["maintenance_id"]
+        == "MAINT_GRADUAL_001"
+    ]
+    assert len(delayed_maintenance) == 1
+    assert int(delayed_maintenance.iloc[0]["delay_days"]) in {2, 3, 4, 5}
+    assert delayed_maintenance.iloc[0]["evidence_id"] == (
+        "EVID_MAINT_DELAY_GRADUAL_001"
+    )
+
+    gradual_cases = injected_tables["rca_ground_truth"].loc[
+        injected_tables["rca_ground_truth"]["root_cause_id"]
+        == "RC_COMPONENT_WEAR"
+    ]
+    assert len(gradual_cases) == len(gradual_lots)
+    assert gradual_cases["evidence_ids"].str.contains(
+        "EVID_MAINT_DELAY_GRADUAL_001"
     ).all()

@@ -91,20 +91,27 @@
       "id": "gradual_degradation",
       "enabled": true,
       "parameters": {
-        "affected_sensor_fraction": [
-          0.02,
-          0.05
-        ],
-        "degradation_window_lots": [
-          20,
-          80
-        ],
-        "maximum_magnitude_sigma": [
-          1.5,
-          3.5
-        ],
-        "requires_maintenance_delay": true
-      }
+      "injection_rate": 0.03,
+      "affected_sensor_fraction": [
+        0.02,
+        0.05
+      ],
+      "degradation_window_lots": [
+        20,
+        80
+      ],
+      "maximum_magnitude_sigma": [
+        1.5,
+        3.5
+      ],
+      "requires_maintenance_delay": true,
+      "maintenance_delay_days": [
+        2,
+        5
+      ],
+      "maintenance_type": "preventive_inspection",
+      "component": "pressure_control_valve"
+    }
     },
     {
       "id": "variance_instability",
