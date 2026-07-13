@@ -117,16 +117,19 @@
       "id": "variance_instability",
       "enabled": true,
       "parameters": {
-        "affected_sensor_fraction": [
-          0.02,
-          0.05
-        ],
-        "variance_multiplier": [
-          1.5,
-          3.0
-        ],
-        "preserve_approximate_mean": true
-      }
+      "injection_rate": 0.03,
+      "affected_sensor_fraction": [
+        0.02,
+        0.05
+      ],
+      "variance_multiplier": [
+        1.5,
+        3.0
+      ],
+      "preserve_approximate_mean": true,
+      "alarm_code": "ALARM_PROCESS_VARIABILITY",
+      "alarm_lead_hours": 1.0
+    }
     },
     {
       "id": "sensor_fault",

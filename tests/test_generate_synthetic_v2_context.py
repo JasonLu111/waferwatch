@@ -6,10 +6,13 @@ from pandas.testing import assert_frame_equal
 from src.data.generate_synthetic_v2_context import (
     apply_abrupt_mean_shift,
     apply_gradual_degradation,
+    apply_variance_instability,
     build_baseline_tables,
     normalize_quality_label,
     validate_generated_tables,
+    validate_variance_instability,
 )
+
 from src.data.validate_synthetic_v2_config import load_config
 
 
@@ -212,4 +215,97 @@ def test_gradual_degradation_creates_delayed_maintenance_evidence() -> None:
     assert len(gradual_cases) == len(gradual_lots)
     assert gradual_cases["evidence_ids"].str.contains(
         "EVID_MAINT_DELAY_GRADUAL_001"
+    ).all()
+
+
+def test_variance_instability_preserves_mean_and_adds_evidence() -> None:
+    config = load_config(CONFIG_PATH)
+
+    source = pd.DataFrame(
+        {
+            "lot_id": [
+                f"SOURCE_LOT_{index:04d}"
+                for index in range(1, 1501)
+            ],
+            "sensor_001": list(range(1500)),
+            "sensor_002": [index * 2 for index in range(1500)],
+            "sensor_003": [index * 3 for index in range(1500)],
+            "pass_fail_label": [-1] * 1500,
+        }
+    )
+
+    baseline_tables = build_baseline_tables(source, config)
+    abrupt_tables = apply_abrupt_mean_shift(
+        baseline_tables,
+        config,
+    )
+    gradual_tables = apply_gradual_degradation(
+        abrupt_tables,
+        config,
+    )
+    injected_tables = apply_variance_instability(
+        gradual_tables,
+        config,
+    )
+
+    validate_generated_tables(injected_tables, config)
+    validate_variance_instability(injected_tables)
+    
+    lots = injected_tables["lots"]
+    variance_lots = lots.loc[
+        lots["anomaly_mechanism"] == "variance_instability"
+    ]
+
+    assert len(variance_lots) == 45
+    assert variance_lots["is_synthetic_anomaly"].eq(1).all()
+    assert variance_lots["root_cause_id"].eq(
+        "RC_PROCESS_VARIABILITY"
+    ).all()
+    assert variance_lots["synthetic_evidence_id"].ne("").all()
+    assert variance_lots["variance_final_multiplier"].gt(1.0).all()
+    assert variance_lots["variance_mean_delta"].abs().lt(1e-9).all()
+
+    multiplier_progress = variance_lots.sort_values(
+        "event_time"
+    )["variance_multiplier_progress"]
+    assert multiplier_progress.is_monotonic_increasing
+    assert multiplier_progress.iloc[-1] > 1.0
+
+    prior_contexts = set(
+        zip(
+            lots.loc[
+                lots["anomaly_mechanism"].isin(
+                    {"abrupt_mean_shift", "gradual_degradation"}
+                ),
+                "tool_id",
+            ],
+            lots.loc[
+                lots["anomaly_mechanism"].isin(
+                    {"abrupt_mean_shift", "gradual_degradation"}
+                ),
+                "chamber_id",
+            ],
+        )
+    )
+    variance_contexts = set(
+        zip(variance_lots["tool_id"], variance_lots["chamber_id"])
+    )
+    assert prior_contexts.isdisjoint(variance_contexts)
+
+    variance_events = injected_tables["tool_events"].loc[
+        injected_tables["tool_events"]["event_id"]
+        == "EVT_VARIANCE_001"
+    ]
+    assert len(variance_events) == 1
+    assert variance_events.iloc[0]["alarm_code"] == (
+        "ALARM_PROCESS_VARIABILITY"
+    )
+
+    variance_cases = injected_tables["rca_ground_truth"].loc[
+        injected_tables["rca_ground_truth"]["root_cause_id"]
+        == "RC_PROCESS_VARIABILITY"
+    ]
+    assert len(variance_cases) == len(variance_lots)
+    assert variance_cases["evidence_ids"].str.contains(
+        "EVID_VARIANCE_EVENT_001"
     ).all()

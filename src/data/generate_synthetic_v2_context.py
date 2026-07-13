@@ -878,18 +878,334 @@ def apply_gradual_degradation(
 
     return updated_tables
 
-
 def apply_variance_instability(
     tables: dict[str, pd.DataFrame],
     config: dict[str, Any],
 ) -> dict[str, pd.DataFrame]:
-    """Placeholder no-op for variance instability mechanism.
+    updated_tables = {
+        table_id: table.copy()
+        for table_id, table in tables.items()
+    }
 
-    The full implementation is not required for this checkpoint; keep
-    tables unchanged and return them.
-    """
-    # Make a shallow copy of tables to preserve original inputs
-    return {table_id: table.copy() for table_id, table in tables.items()}
+    mechanism = next(
+        item
+        for item in config["anomaly_mechanisms"]
+        if item["id"] == "variance_instability"
+    )
+    parameters = mechanism["parameters"]
+
+    lots = updated_tables["lots"]
+    tool_events = updated_tables["tool_events"]
+    rca_ground_truth = updated_tables["rca_ground_truth"]
+
+    injection_rate = float(parameters["injection_rate"])
+    sensor_fraction_min, sensor_fraction_max = parameters[
+        "affected_sensor_fraction"
+    ]
+    multiplier_min, multiplier_max = parameters[
+        "variance_multiplier"
+    ]
+    alarm_code = str(parameters["alarm_code"])
+    alarm_lead_hours = float(parameters["alarm_lead_hours"])
+
+    if not 0 < injection_rate < 1:
+        raise ValueError(
+            "variance_instability injection_rate must be between 0 and 1."
+        )
+
+    injection_lot_count = max(
+        1,
+        int(round(len(lots) * injection_rate)),
+    )
+
+    numeric_sensor_columns = [
+        column
+        for column in lots.columns
+        if str(column).startswith("sensor_")
+        and pd.api.types.is_numeric_dtype(lots[column])
+    ]
+
+    sensor_standard_deviations = lots[numeric_sensor_columns].std(
+        axis=0,
+        ddof=0,
+    )
+    eligible_sensor_columns = [
+        column
+        for column in numeric_sensor_columns
+        if np.isfinite(sensor_standard_deviations[column])
+        and sensor_standard_deviations[column] > 0
+    ]
+
+    if not eligible_sensor_columns:
+        raise ValueError(
+            "No non-constant numeric sensor columns are available for "
+            "variance_instability injection."
+        )
+
+    used_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in lots.loc[
+            lots["anomaly_mechanism"] != "none",
+            ["tool_id", "chamber_id"],
+        ].itertuples(index=False)
+    }
+
+    context_sizes = (
+        lots.groupby(["tool_id", "chamber_id"], sort=True)
+        .size()
+        .reset_index(name="lot_count")
+    )
+    eligible_contexts = context_sizes.loc[
+        context_sizes["lot_count"] >= injection_lot_count
+    ].copy()
+
+    eligible_contexts = eligible_contexts.loc[
+        ~eligible_contexts.apply(
+            lambda row: (
+                str(row["tool_id"]),
+                str(row["chamber_id"]),
+            )
+            in used_contexts,
+            axis=1,
+        )
+    ].reset_index(drop=True)
+
+    if eligible_contexts.empty:
+        raise ValueError(
+            "No unused tool/chamber context contains enough lots for "
+            "variance_instability."
+        )
+
+    rng = np.random.default_rng(config["random_seed"] + 303)
+
+    selected_context = eligible_contexts.iloc[
+        rng.integers(low=0, high=len(eligible_contexts))
+    ]
+    selected_tool = str(selected_context["tool_id"])
+    selected_chamber = str(selected_context["chamber_id"])
+
+    episode = (
+        lots.loc[
+            (lots["tool_id"] == selected_tool)
+            & (lots["chamber_id"] == selected_chamber)
+        ]
+        .sort_values("event_time")
+        .head(injection_lot_count)
+        .copy()
+    )
+    episode_indices = episode.index.tolist()
+
+    sensor_fraction = rng.uniform(
+        low=float(sensor_fraction_min),
+        high=float(sensor_fraction_max),
+    )
+    affected_sensor_count = max(
+        1,
+        int(round(len(eligible_sensor_columns) * sensor_fraction)),
+    )
+    affected_sensor_count = min(
+        affected_sensor_count,
+        len(eligible_sensor_columns),
+    )
+
+    affected_sensor_columns = sorted(
+        rng.choice(
+            eligible_sensor_columns,
+            size=affected_sensor_count,
+            replace=False,
+        ).tolist()
+    )
+
+    final_variance_multiplier = float(
+        rng.uniform(
+            low=float(multiplier_min),
+            high=float(multiplier_max),
+        )
+    )
+    variance_progress = np.linspace(
+        start=1 / injection_lot_count,
+        stop=1.0,
+        num=injection_lot_count,
+    )
+    multiplier_progress = (
+        1.0
+        + (final_variance_multiplier - 1.0) * variance_progress
+    )
+
+    mean_deltas: list[float] = []
+
+    for sensor_column in affected_sensor_columns:
+        original_values = (
+            lots.loc[episode_indices, sensor_column]
+            .astype("float64")
+            .to_numpy()
+        )
+        original_mean = float(np.mean(original_values))
+        baseline_std = float(sensor_standard_deviations[sensor_column])
+
+        raw_noise = rng.normal(size=injection_lot_count)
+        raw_noise = raw_noise - np.mean(raw_noise)
+
+        raw_noise_std = float(np.std(raw_noise, ddof=0))
+
+        if raw_noise_std == 0:
+            raise ValueError(
+                "Could not generate non-zero variance noise."
+            )
+
+        standardized_noise = raw_noise / raw_noise_std
+        shift = (
+            standardized_noise
+            * baseline_std
+            * (final_variance_multiplier - 1.0)
+            * variance_progress
+        )
+
+        # Re-centre the synthetic disturbance: the episode mean remains
+        # unchanged while the variation around that mean increases.
+        shift = shift - np.mean(shift)
+
+        lots[sensor_column] = lots[sensor_column].astype("float64")
+        lots.loc[episode_indices, sensor_column] = (
+            original_values + shift
+        )
+
+        updated_mean = float(
+            lots.loc[episode_indices, sensor_column].mean()
+        )
+        mean_deltas.append(updated_mean - original_mean)
+
+    variance_mean_delta = float(
+        max(abs(delta) for delta in mean_deltas)
+    )
+
+    if "synthetic_evidence_id" not in lots.columns:
+        lots["synthetic_evidence_id"] = ""
+
+    if "injected_sensor_columns" not in lots.columns:
+        lots["injected_sensor_columns"] = ""
+
+    if "variance_multiplier_progress" not in lots.columns:
+        lots["variance_multiplier_progress"] = np.nan
+
+    if "variance_final_multiplier" not in lots.columns:
+        lots["variance_final_multiplier"] = np.nan
+
+    if "variance_mean_delta" not in lots.columns:
+        lots["variance_mean_delta"] = np.nan
+
+    affected_sensor_text = ";".join(affected_sensor_columns)
+    alarm_evidence_id = "EVID_VARIANCE_EVENT_001"
+
+    lot_evidence_ids = {
+        str(lot_id): f"EVID_VARIANCE_{lot_id}"
+        for lot_id in episode["lot_id"].tolist()
+    }
+
+    lots.loc[episode_indices, "is_synthetic_anomaly"] = 1
+    lots.loc[
+        episode_indices,
+        "anomaly_mechanism",
+    ] = "variance_instability"
+    lots.loc[
+        episode_indices,
+        "root_cause_id",
+    ] = "RC_PROCESS_VARIABILITY"
+    lots.loc[
+        episode_indices,
+        "injected_sensor_columns",
+    ] = affected_sensor_text
+    lots.loc[
+        episode_indices,
+        "variance_multiplier_progress",
+    ] = multiplier_progress
+    lots.loc[
+        episode_indices,
+        "variance_final_multiplier",
+    ] = final_variance_multiplier
+    lots.loc[
+        episode_indices,
+        "variance_mean_delta",
+    ] = variance_mean_delta
+    lots.loc[
+        episode_indices,
+        "synthetic_evidence_id",
+    ] = [
+        lot_evidence_ids[str(lot_id)]
+        for lot_id in episode["lot_id"].tolist()
+    ]
+
+    first_lot = episode.iloc[0]
+    alarm_start_time = (
+        pd.Timestamp(first_lot["event_time"])
+        - pd.Timedelta(hours=alarm_lead_hours)
+    )
+
+    variance_alarm = pd.DataFrame(
+        [
+            {
+                "event_id": "EVT_VARIANCE_001",
+                "tool_id": selected_tool,
+                "chamber_id": selected_chamber,
+                "alarm_code": alarm_code,
+                "event_type": "process_variability_warning",
+                "start_time": alarm_start_time,
+                "end_time": alarm_start_time + pd.Timedelta(minutes=30),
+                "severity": "medium",
+                "related_lot_id": first_lot["lot_id"],
+                "evidence_id": alarm_evidence_id,
+            }
+        ]
+    )
+
+    updated_tables["tool_events"] = pd.concat(
+        [tool_events, variance_alarm],
+        ignore_index=True,
+    )
+
+    rca_records: list[dict[str, Any]] = []
+
+    for case_number, (_, lot) in enumerate(episode.iterrows(), start=1):
+        rca_records.append(
+            {
+                "case_id": f"RCA_VARIANCE_{case_number:03d}",
+                "lot_id": lot["lot_id"],
+                "root_cause_id": "RC_PROCESS_VARIABILITY",
+                "suspected_cause": (
+                    "Synthetic variance instability with increasing "
+                    "within-context sensor dispersion."
+                ),
+                "recommended_action": (
+                    "Review chamber stability, inspect control-chart "
+                    "dispersion, compare adjacent lots, and verify "
+                    "process-control settings."
+                ),
+                "outcome": (
+                    "Synthetic variance instability injected for "
+                    "controlled evaluation."
+                ),
+                "evidence_ids": (
+                    f"{alarm_evidence_id};"
+                    f"{lot_evidence_ids[str(lot['lot_id'])]}"
+                ),
+                "supports_abstention": False,
+                "top3_acceptable_causes": "RC_PROCESS_VARIABILITY",
+            }
+        )
+
+    variance_rca = pd.DataFrame(rca_records)
+
+    updated_tables["rca_ground_truth"] = pd.concat(
+        [rca_ground_truth, variance_rca],
+        ignore_index=True,
+    )
+    updated_tables["lots"] = lots
+
+    return updated_tables
+
+
+
+
 
 def validate_generated_tables(
     tables: dict[str, pd.DataFrame],
@@ -936,9 +1252,6 @@ def validate_generated_tables(
         "abrupt_mean_shift",
         "gradual_degradation",
         "variance_instability",
-        "sensor_fault",
-        "recipe_product_mix_drift",
-        "contextual_anomaly"
     }
 
     if not set(lots["anomaly_mechanism"].unique()).issubset(
@@ -1141,6 +1454,118 @@ def write_generated_tables(
 
     return written_paths
 
+def validate_variance_instability(
+    tables: dict[str, pd.DataFrame],
+) -> None:
+    lots = tables["lots"]
+
+    variance_lots = lots.loc[
+        lots["anomaly_mechanism"] == "variance_instability"
+    ].copy()
+
+    if variance_lots.empty:
+        raise ValueError(
+            "variance_instability must inject at least one lot."
+        )
+
+    if not variance_lots["is_synthetic_anomaly"].eq(1).all():
+        raise ValueError(
+            "variance_instability lots must have "
+            "is_synthetic_anomaly=1."
+        )
+
+    if not variance_lots["root_cause_id"].eq(
+        "RC_PROCESS_VARIABILITY"
+    ).all():
+        raise ValueError(
+            "variance_instability lots must use "
+            "RC_PROCESS_VARIABILITY."
+        )
+
+    required_columns = {
+        "synthetic_evidence_id",
+        "injected_sensor_columns",
+        "variance_multiplier_progress",
+        "variance_final_multiplier",
+        "variance_mean_delta",
+    }
+
+    missing_columns = required_columns.difference(
+        variance_lots.columns
+    )
+
+    if missing_columns:
+        raise ValueError(
+            "variance_instability lots are missing metadata: "
+            f"{sorted(missing_columns)}"
+        )
+
+    if variance_lots["synthetic_evidence_id"].fillna("").eq("").any():
+        raise ValueError(
+            "variance_instability lots must contain evidence IDs."
+        )
+
+    ordered_multiplier = variance_lots.sort_values(
+        "event_time"
+    )["variance_multiplier_progress"]
+
+    if not ordered_multiplier.is_monotonic_increasing:
+        raise ValueError(
+            "variance multiplier must increase over time."
+        )
+
+    if variance_lots["variance_final_multiplier"].le(1.0).any():
+        raise ValueError(
+            "variance final multiplier must be greater than 1.0."
+        )
+
+    if variance_lots["variance_mean_delta"].abs().gt(1e-9).any():
+        raise ValueError(
+            "variance_instability must preserve the episode mean."
+        )
+
+    earlier_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in lots.loc[
+            lots["anomaly_mechanism"].isin(
+                {"abrupt_mean_shift", "gradual_degradation"}
+            ),
+            ["tool_id", "chamber_id"],
+        ].drop_duplicates().itertuples(index=False)
+    }
+    variance_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in variance_lots[
+            ["tool_id", "chamber_id"]
+        ].drop_duplicates().itertuples(index=False)
+    }
+
+    if earlier_contexts.intersection(variance_contexts):
+        raise ValueError(
+            "variance_instability must use a context not used by "
+            "earlier anomaly mechanisms."
+        )
+
+    variance_events = tables["tool_events"].loc[
+        tables["tool_events"]["event_id"] == "EVT_VARIANCE_001"
+    ]
+
+    if len(variance_events) != 1:
+        raise ValueError(
+            "Exactly one variance-instability tool event is required."
+        )
+
+    variance_cases = tables["rca_ground_truth"].loc[
+        tables["rca_ground_truth"]["root_cause_id"]
+        == "RC_PROCESS_VARIABILITY"
+    ]
+
+    if len(variance_cases) != len(variance_lots):
+        raise ValueError(
+            "Every variance_instability lot must have one RCA "
+            "ground-truth case."
+        )
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -1199,6 +1624,13 @@ def main() -> int:
             tables=tables,
             config=config,
         )
+        validate_generated_tables(
+            tables=tables,
+            config=config,
+        )
+        validate_variance_instability(
+            tables=tables,
+        )
 
         output_dir = (
             args.output_dir.resolve()
@@ -1235,13 +1667,16 @@ def main() -> int:
     gradual_lot_count = int(
         lots["anomaly_mechanism"].eq("gradual_degradation").sum()
     )
-
+    variance_lot_count = int(
+        lots["anomaly_mechanism"].eq("variance_instability").sum()
+    )
     print(
         f"Injected synthetic anomalies: "
         f"{int(lots['is_synthetic_anomaly'].sum())}"
     )
     print(f"Abrupt mean-shift lots: {abrupt_lot_count}")
     print(f"Gradual-degradation lots: {gradual_lot_count}")
+    print(f"Variance-instability lots: {variance_lot_count}")
     print(f"RCA ground-truth cases: {len(tables['rca_ground_truth'])}")
     print("Written files:")
 
@@ -1250,7 +1685,7 @@ def main() -> int:
 
     print(
         "Implemented mechanisms: abrupt_mean_shift, "
-        "gradual_degradation"
+        "gradual_degradation, variance_instability"
     )
     print(
         "All other Synthetic Data V2 anomaly mechanisms remain disabled."
