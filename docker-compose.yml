@@ -16,6 +16,7 @@ services:
       - sqlite:///mlflow_data/mlflow.db
       - --default-artifact-root
       - file:///D:/waferwatch/mlflow_data/artifacts
+      - --no-serve-artifacts
       - --allowed-hosts
       - mlflow,mlflow:5000,localhost,localhost:5000,127.0.0.1,127.0.0.1:5000
     ports:
@@ -31,6 +32,8 @@ services:
       MLFLOW_TRACKING_URI: http://mlflow:5000
       WAFERWATCH_MODEL_NAME: WaferWatchRiskModel
       WAFERWATCH_MODEL_ALIAS: champion
+      WAFERWATCH_DIRECT_ARTIFACT_LOAD: "true"
+      WAFERWATCH_LOCAL_ARTIFACT_ROOT: /app/mlflow_data/artifacts
     depends_on:
       mlflow:
         condition: service_started

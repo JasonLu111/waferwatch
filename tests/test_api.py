@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -289,3 +290,53 @@ def test_drift_endpoint_returns_persisted_report(
 
     assert response.status_code == 200
     assert response.json() == {"report": report}
+
+def test_resolve_local_champion_artifact_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """A logged-model URI should resolve to its mounted artifact path."""
+
+    model_id = "m-test-champion-model"
+    artifact_path = (
+        tmp_path
+        / "1"
+        / "models"
+        / model_id
+        / "artifacts"
+    )
+    artifact_path.mkdir(parents=True)
+    (artifact_path / "MLmodel").write_text(
+        "artifact metadata",
+        encoding="utf-8",
+    )
+
+    model_version = SimpleNamespace(
+        source=f"models:/{model_id}",
+        run_id="test-run-id",
+    )
+    run = SimpleNamespace(
+        info=SimpleNamespace(experiment_id="1"),
+    )
+    client = SimpleNamespace(
+        get_run=lambda run_id: run,
+    )
+
+    monkeypatch.setattr(
+        api_main,
+        "LOCAL_ARTIFACT_ROOT",
+        tmp_path,
+    )
+    monkeypatch.setattr(
+        api_main,
+        "get_registry_client",
+        lambda: client,
+    )
+
+    resolved_path = (
+        api_main.resolve_local_champion_artifact_path(
+            model_version,
+        )
+    )
+
+    assert resolved_path == artifact_path

@@ -44,6 +44,17 @@ DRIFT_REPORT_PATH = (
     / "reports"
     / "drift_monitoring_report.json"
 )
+DIRECT_ARTIFACT_LOAD = os.getenv(
+    "WAFERWATCH_DIRECT_ARTIFACT_LOAD",
+    "false",
+).lower() == "true"
+
+LOCAL_ARTIFACT_ROOT = Path(
+    os.getenv(
+        "WAFERWATCH_LOCAL_ARTIFACT_ROOT",
+        str(PROJECT_ROOT / "mlflow_data" / "artifacts"),
+    )
+)
 FEATURE_COLUMNS = [
     "sensor_mean",
     "sensor_std",
@@ -170,23 +181,87 @@ def get_current_model_version() -> Any:
             ),
         ) from error
 
+def resolve_local_champion_artifact_path(
+    version: Any,
+) -> Path:
+    """Resolve a mounted MLflow 3 logged-model artifact path."""
+
+    source = str(version.source)
+
+    if not source.startswith("models:/"):
+        raise ValueError(
+            "Champion model source is not an MLflow logged-model URI: "
+            f"{source}"
+        )
+
+    model_id = source.removeprefix("models:/").split("/", 1)[0]
+
+    if not model_id.startswith("m-"):
+        raise ValueError(
+            f"Unable to extract a logged-model ID from source: {source}"
+        )
+
+    run = get_registry_client().get_run(version.run_id)
+    experiment_id = str(run.info.experiment_id)
+
+    artifact_path = (
+        LOCAL_ARTIFACT_ROOT
+        / experiment_id
+        / "models"
+        / model_id
+        / "artifacts"
+    )
+
+    if not (artifact_path / "MLmodel").is_file():
+        raise FileNotFoundError(
+            "Champion MLmodel file was not found at: "
+            f"{artifact_path}"
+        )
+
+    return artifact_path
+
+
 
 @lru_cache
+@lru_cache
 def load_champion_model() -> Any:
-    """Load and cache the current champion model from MLflow Registry."""
+    """Load the champion model through Registry or local mounted artifacts."""
 
+    version = get_current_model_version()
     model_uri = f"models:/{REGISTERED_MODEL_NAME}@{MODEL_ALIAS}"
+
+    if DIRECT_ARTIFACT_LOAD:
+        try:
+            artifact_path = resolve_local_champion_artifact_path(
+                version,
+            )
+            return mlflow.sklearn.load_model(str(artifact_path))
+        except Exception as error:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Unable to load the champion model from mounted "
+                    f"MLflow artifacts: {error}"
+                ),
+            ) from error
 
     try:
         return mlflow.sklearn.load_model(model_uri)
-    except Exception as error:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Unable to load the current MLflow champion model: "
-                f"{error}"
-            ),
-        ) from error
+    except Exception as registry_error:
+        try:
+            artifact_path = resolve_local_champion_artifact_path(
+                version,
+            )
+            return mlflow.sklearn.load_model(str(artifact_path))
+        except Exception as local_error:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Unable to load the current MLflow champion model. "
+                    f"Registry load failed: {registry_error}. "
+                    f"Local artifact fallback failed: {local_error}"
+                ),
+            ) from local_error
 
 
 @lru_cache
