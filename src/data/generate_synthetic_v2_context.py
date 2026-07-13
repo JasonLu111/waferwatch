@@ -1204,6 +1204,373 @@ def apply_variance_instability(
     return updated_tables
 
 
+def apply_sensor_faults(
+    tables: dict[str, pd.DataFrame],
+    config: dict[str, Any],
+) -> dict[str, pd.DataFrame]:
+    updated_tables = {
+        table_id: table.copy()
+        for table_id, table in tables.items()
+    }
+
+    mechanism = next(
+        item
+        for item in config["anomaly_mechanisms"]
+        if item["id"] == "sensor_fault"
+    )
+    parameters = mechanism["parameters"]
+
+    lots = updated_tables["lots"]
+    tool_events = updated_tables["tool_events"]
+    rca_ground_truth = updated_tables["rca_ground_truth"]
+
+    injection_rate = float(parameters["injection_rate"])
+    fault_types = list(parameters["fault_types"])
+    sensor_count_min, sensor_count_max = parameters[
+        "affected_sensor_count"
+    ]
+    bias_min_sigma, bias_max_sigma = parameters[
+        "calibration_bias_sigma"
+    ]
+    alarm_lead_hours = float(parameters["alarm_lead_hours"])
+
+    expected_fault_types = {
+        "stuck_at",
+        "dropout",
+        "missing_burst",
+        "calibration_bias",
+    }
+
+    if set(fault_types) != expected_fault_types:
+        raise ValueError(
+            "sensor_fault must define exactly: "
+            "stuck_at, dropout, missing_burst, calibration_bias."
+        )
+
+    if not 0 < injection_rate < 1:
+        raise ValueError(
+            "sensor_fault injection_rate must be between 0 and 1."
+        )
+
+    injection_lot_count = max(
+        len(fault_types),
+        int(round(len(lots) * injection_rate)),
+    )
+
+    numeric_sensor_columns = [
+        column
+        for column in lots.columns
+        if str(column).startswith("sensor_")
+        and pd.api.types.is_numeric_dtype(lots[column])
+    ]
+
+    sensor_standard_deviations = lots[numeric_sensor_columns].std(
+        axis=0,
+        ddof=0,
+    )
+    eligible_sensor_columns = [
+        column
+        for column in numeric_sensor_columns
+        if np.isfinite(sensor_standard_deviations[column])
+        and sensor_standard_deviations[column] > 0
+    ]
+
+    if len(eligible_sensor_columns) < 2:
+        raise ValueError(
+            "sensor_fault requires at least two non-constant numeric "
+            "sensor columns."
+        )
+
+    used_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in lots.loc[
+            lots["anomaly_mechanism"] != "none",
+            ["tool_id", "chamber_id"],
+        ].itertuples(index=False)
+    }
+
+    context_sizes = (
+        lots.groupby(["tool_id", "chamber_id"], sort=True)
+        .size()
+        .reset_index(name="lot_count")
+    )
+    eligible_contexts = context_sizes.loc[
+        context_sizes["lot_count"] >= injection_lot_count
+    ].copy()
+
+    eligible_contexts = eligible_contexts.loc[
+        ~eligible_contexts.apply(
+            lambda row: (
+                str(row["tool_id"]),
+                str(row["chamber_id"]),
+            )
+            in used_contexts,
+            axis=1,
+        )
+    ].reset_index(drop=True)
+
+    if eligible_contexts.empty:
+        raise ValueError(
+            "No unused tool/chamber context contains enough lots for "
+            "sensor_fault."
+        )
+
+    rng = np.random.default_rng(config["random_seed"] + 404)
+
+    selected_context = eligible_contexts.iloc[
+        rng.integers(low=0, high=len(eligible_contexts))
+    ]
+    selected_tool = str(selected_context["tool_id"])
+    selected_chamber = str(selected_context["chamber_id"])
+
+    episode = (
+        lots.loc[
+            (lots["tool_id"] == selected_tool)
+            & (lots["chamber_id"] == selected_chamber)
+        ]
+        .sort_values("event_time")
+        .head(injection_lot_count)
+        .copy()
+    )
+    episode_indices = episode.index.tolist()
+
+    if "synthetic_evidence_id" not in lots.columns:
+        lots["synthetic_evidence_id"] = ""
+
+    if "injected_sensor_columns" not in lots.columns:
+        lots["injected_sensor_columns"] = ""
+
+    if "sensor_fault_type" not in lots.columns:
+        lots["sensor_fault_type"] = ""
+
+    if "sensor_fault_detail" not in lots.columns:
+        lots["sensor_fault_detail"] = ""
+
+    fault_alarm_codes = {
+        "stuck_at": "ALARM_SENSOR_STUCK",
+        "dropout": "ALARM_SENSOR_DROPOUT",
+        "missing_burst": "ALARM_SENSOR_MISSING_BURST",
+        "calibration_bias": "ALARM_SENSOR_CALIBRATION_BIAS",
+    }
+
+    fault_actions = {
+        "stuck_at": (
+            "Inspect the sensor signal path and replace or reset the "
+            "stuck measurement channel."
+        ),
+        "dropout": (
+            "Inspect intermittent data acquisition, communication, and "
+            "sensor connector integrity."
+        ),
+        "missing_burst": (
+            "Investigate the sustained missing-data interval and verify "
+            "data logger and sensor availability."
+        ),
+        "calibration_bias": (
+            "Recalibrate the sensor and compare its offset against a "
+            "reference measurement."
+        ),
+    }
+
+    fault_groups = np.array_split(
+        np.arange(injection_lot_count),
+        len(fault_types),
+    )
+
+    fault_events: list[dict[str, Any]] = []
+    rca_records: list[dict[str, Any]] = []
+
+    for fault_number, (fault_type, positions) in enumerate(
+        zip(fault_types, fault_groups),
+        start=1,
+    ):
+        group_indices = [
+            episode_indices[position]
+            for position in positions.tolist()
+        ]
+        group_lots = lots.loc[group_indices].copy()
+
+        requested_sensor_count = int(
+            rng.integers(
+                low=int(sensor_count_min),
+                high=int(sensor_count_max) + 1,
+            )
+        )
+
+        if fault_type == "dropout":
+            requested_sensor_count = max(
+                2,
+                requested_sensor_count,
+            )
+
+        affected_sensor_count = min(
+            requested_sensor_count,
+            len(eligible_sensor_columns),
+        )
+
+        affected_sensor_columns = sorted(
+            rng.choice(
+                eligible_sensor_columns,
+                size=affected_sensor_count,
+                replace=False,
+            ).tolist()
+        )
+        affected_sensor_text = ";".join(affected_sensor_columns)
+
+        fault_event_id = (
+            f"EVT_SENSOR_{fault_type.upper()}_{fault_number:03d}"
+        )
+        fault_event_evidence_id = (
+            f"EVID_SENSOR_EVENT_{fault_type.upper()}_{fault_number:03d}"
+        )
+        first_lot = group_lots.iloc[0]
+        alarm_start_time = (
+            pd.Timestamp(first_lot["event_time"])
+            - pd.Timedelta(hours=alarm_lead_hours)
+        )
+
+        if fault_type == "stuck_at":
+            for sensor_column in affected_sensor_columns:
+                stuck_value = float(
+                    lots.loc[group_indices[0], sensor_column]
+                )
+                lots[sensor_column] = lots[sensor_column].astype(
+                    "float64"
+                )
+                lots.loc[group_indices, sensor_column] = stuck_value
+
+            fault_detail = "constant_stuck_at_value"
+
+        elif fault_type == "dropout":
+            for row_number, lot_index in enumerate(group_indices):
+                sensor_column = affected_sensor_columns[
+                    row_number % len(affected_sensor_columns)
+                ]
+                lots.loc[lot_index, sensor_column] = np.nan
+
+            fault_detail = "intermittent_single_sensor_dropout"
+
+        elif fault_type == "missing_burst":
+            for sensor_column in affected_sensor_columns:
+                lots.loc[group_indices, sensor_column] = np.nan
+
+            fault_detail = "consecutive_missing_data_burst"
+
+        elif fault_type == "calibration_bias":
+            bias_sigma = float(
+                rng.uniform(
+                    low=float(bias_min_sigma),
+                    high=float(bias_max_sigma),
+                )
+            )
+
+            for sensor_column in affected_sensor_columns:
+                bias_amount = (
+                    sensor_standard_deviations[sensor_column] * bias_sigma
+                )
+                lots[sensor_column] = lots[sensor_column].astype(
+                    "float64"
+                )
+                lots.loc[group_indices, sensor_column] = (
+                    lots.loc[group_indices, sensor_column]
+                    + bias_amount
+                )
+
+            fault_detail = f"positive_calibration_bias_sigma={bias_sigma:.3f}"
+
+        else:
+            raise ValueError(
+                f"Unsupported sensor fault type: {fault_type}"
+            )
+
+        lot_evidence_ids = {
+            str(lot_id): (
+                f"EVID_SENSOR_{fault_type.upper()}_{lot_id}"
+            )
+            for lot_id in group_lots["lot_id"].tolist()
+        }
+
+        lots.loc[group_indices, "is_synthetic_anomaly"] = 1
+        lots.loc[group_indices, "anomaly_mechanism"] = "sensor_fault"
+        lots.loc[
+            group_indices,
+            "root_cause_id",
+        ] = "RC_SENSOR_HARDWARE"
+        lots.loc[
+            group_indices,
+            "sensor_fault_type",
+        ] = fault_type
+        lots.loc[
+            group_indices,
+            "sensor_fault_detail",
+        ] = fault_detail
+        lots.loc[
+            group_indices,
+            "injected_sensor_columns",
+        ] = affected_sensor_text
+        lots.loc[
+            group_indices,
+            "synthetic_evidence_id",
+        ] = [
+            lot_evidence_ids[str(lot_id)]
+            for lot_id in group_lots["lot_id"].tolist()
+        ]
+
+        fault_events.append(
+            {
+                "event_id": fault_event_id,
+                "tool_id": selected_tool,
+                "chamber_id": selected_chamber,
+                "alarm_code": fault_alarm_codes[fault_type],
+                "event_type": "sensor_fault_alarm",
+                "start_time": alarm_start_time,
+                "end_time": alarm_start_time + pd.Timedelta(minutes=30),
+                "severity": "high",
+                "related_lot_id": first_lot["lot_id"],
+                "evidence_id": fault_event_evidence_id,
+            }
+        )
+
+        for _, lot in group_lots.iterrows():
+            rca_records.append(
+                {
+                    "case_id": (
+                        f"RCA_SENSOR_{fault_type.upper()}_"
+                        f"{lot['lot_id']}"
+                    ),
+                    "lot_id": lot["lot_id"],
+                    "root_cause_id": "RC_SENSOR_HARDWARE",
+                    "suspected_cause": (
+                        f"Synthetic {fault_type} sensor hardware fault."
+                    ),
+                    "recommended_action": fault_actions[fault_type],
+                    "outcome": (
+                        "Synthetic sensor fault injected for controlled "
+                        "evaluation."
+                    ),
+                    "evidence_ids": (
+                        f"{fault_event_evidence_id};"
+                        f"{lot_evidence_ids[str(lot['lot_id'])]}"
+                    ),
+                    "supports_abstention": False,
+                    "top3_acceptable_causes": "RC_SENSOR_HARDWARE",
+                }
+            )
+
+    sensor_fault_events = pd.DataFrame(fault_events)
+    sensor_fault_rca = pd.DataFrame(rca_records)
+
+    updated_tables["tool_events"] = pd.concat(
+        [tool_events, sensor_fault_events],
+        ignore_index=True,
+    )
+    updated_tables["rca_ground_truth"] = pd.concat(
+        [rca_ground_truth, sensor_fault_rca],
+        ignore_index=True,
+    )
+    updated_tables["lots"] = lots
+
+    return updated_tables
 
 
 
@@ -1252,6 +1619,7 @@ def validate_generated_tables(
         "abrupt_mean_shift",
         "gradual_degradation",
         "variance_instability",
+        "sensor_fault",
     }
 
     if not set(lots["anomaly_mechanism"].unique()).issubset(
@@ -1566,6 +1934,179 @@ def validate_variance_instability(
             "ground-truth case."
         )
 
+def validate_sensor_faults(
+    tables: dict[str, pd.DataFrame],
+) -> None:
+    lots = tables["lots"]
+
+    sensor_fault_lots = lots.loc[
+        lots["anomaly_mechanism"] == "sensor_fault"
+    ].copy()
+
+    if sensor_fault_lots.empty:
+        raise ValueError(
+            "sensor_fault must inject at least one lot."
+        )
+
+    expected_fault_types = {
+        "stuck_at",
+        "dropout",
+        "missing_burst",
+        "calibration_bias",
+    }
+
+    actual_fault_types = set(
+        sensor_fault_lots["sensor_fault_type"].unique()
+    )
+
+    if actual_fault_types != expected_fault_types:
+        raise ValueError(
+            "sensor_fault must include all four fault types."
+        )
+
+    if not sensor_fault_lots["is_synthetic_anomaly"].eq(1).all():
+        raise ValueError(
+            "sensor_fault lots must have is_synthetic_anomaly=1."
+        )
+
+    if not sensor_fault_lots["root_cause_id"].eq(
+        "RC_SENSOR_HARDWARE"
+    ).all():
+        raise ValueError(
+            "sensor_fault lots must use RC_SENSOR_HARDWARE."
+        )
+
+    required_columns = {
+        "synthetic_evidence_id",
+        "injected_sensor_columns",
+        "sensor_fault_type",
+        "sensor_fault_detail",
+    }
+
+    missing_columns = required_columns.difference(
+        sensor_fault_lots.columns
+    )
+
+    if missing_columns:
+        raise ValueError(
+            "sensor_fault lots are missing metadata: "
+            f"{sorted(missing_columns)}"
+        )
+
+    if sensor_fault_lots["synthetic_evidence_id"].fillna("").eq("").any():
+        raise ValueError(
+            "sensor_fault lots must contain evidence IDs."
+        )
+
+    earlier_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in lots.loc[
+            lots["anomaly_mechanism"].isin(
+                {
+                    "abrupt_mean_shift",
+                    "gradual_degradation",
+                    "variance_instability",
+                }
+            ),
+            ["tool_id", "chamber_id"],
+        ].drop_duplicates().itertuples(index=False)
+    }
+    sensor_fault_contexts = {
+        (str(row.tool_id), str(row.chamber_id))
+        for row in sensor_fault_lots[
+            ["tool_id", "chamber_id"]
+        ].drop_duplicates().itertuples(index=False)
+    }
+
+    if earlier_contexts.intersection(sensor_fault_contexts):
+        raise ValueError(
+            "sensor_fault must use a context not used by earlier "
+            "anomaly mechanisms."
+        )
+
+    sensor_fault_events = tables["tool_events"].loc[
+        tables["tool_events"]["event_type"] == "sensor_fault_alarm"
+    ]
+
+    if len(sensor_fault_events) != 4:
+        raise ValueError(
+            "sensor_fault must create exactly four tool events."
+        )
+
+    sensor_fault_cases = tables["rca_ground_truth"].loc[
+        tables["rca_ground_truth"]["root_cause_id"]
+        == "RC_SENSOR_HARDWARE"
+    ]
+
+    if len(sensor_fault_cases) != len(sensor_fault_lots):
+        raise ValueError(
+            "Every sensor_fault lot must have one RCA ground-truth case."
+        )
+
+    for fault_type in expected_fault_types:
+        type_lots = sensor_fault_lots.loc[
+            sensor_fault_lots["sensor_fault_type"] == fault_type
+        ]
+
+        if type_lots.empty:
+            raise ValueError(
+                f"sensor_fault type '{fault_type}' has no lots."
+            )
+
+        type_events = sensor_fault_events.loc[
+            sensor_fault_events["event_id"].str.contains(
+                fault_type.upper(),
+                regex=False,
+            )
+        ]
+
+        if len(type_events) != 1:
+            raise ValueError(
+                f"sensor_fault type '{fault_type}' must have one event."
+            )
+
+    missing_burst_lots = sensor_fault_lots.loc[
+        sensor_fault_lots["sensor_fault_type"] == "missing_burst"
+    ]
+
+    missing_burst_columns = set(
+        ";".join(
+            missing_burst_lots["injected_sensor_columns"].tolist()
+        ).split(";")
+    )
+
+    has_true_missing_burst = any(
+        missing_burst_lots[column].isna().all()
+        for column in missing_burst_columns
+        if column
+    )
+
+    if not has_true_missing_burst:
+        raise ValueError(
+            "missing_burst must create a consecutive missing-value burst."
+        )
+
+    stuck_at_lots = sensor_fault_lots.loc[
+        sensor_fault_lots["sensor_fault_type"] == "stuck_at"
+    ]
+
+    stuck_at_columns = set(
+        ";".join(
+            stuck_at_lots["injected_sensor_columns"].tolist()
+        ).split(";")
+    )
+
+    has_stuck_sensor = any(
+        stuck_at_lots[column].dropna().nunique() == 1
+        for column in stuck_at_columns
+        if column
+    )
+
+    if not has_stuck_sensor:
+        raise ValueError(
+            "stuck_at must produce at least one constant sensor value."
+        )
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -1624,6 +2165,10 @@ def main() -> int:
             tables=tables,
             config=config,
         )
+        tables = apply_sensor_faults(
+            tables=tables,
+            config=config,
+        )        
         validate_generated_tables(
             tables=tables,
             config=config,
@@ -1631,7 +2176,9 @@ def main() -> int:
         validate_variance_instability(
             tables=tables,
         )
-
+        validate_sensor_faults(
+            tables=tables,
+        )
         output_dir = (
             args.output_dir.resolve()
             if args.output_dir is not None
@@ -1670,6 +2217,9 @@ def main() -> int:
     variance_lot_count = int(
         lots["anomaly_mechanism"].eq("variance_instability").sum()
     )
+    sensor_fault_lot_count = int(
+        lots["anomaly_mechanism"].eq("sensor_fault").sum()
+    )
     print(
         f"Injected synthetic anomalies: "
         f"{int(lots['is_synthetic_anomaly'].sum())}"
@@ -1677,6 +2227,7 @@ def main() -> int:
     print(f"Abrupt mean-shift lots: {abrupt_lot_count}")
     print(f"Gradual-degradation lots: {gradual_lot_count}")
     print(f"Variance-instability lots: {variance_lot_count}")
+    print(f"Sensor-fault lots: {sensor_fault_lot_count}")
     print(f"RCA ground-truth cases: {len(tables['rca_ground_truth'])}")
     print("Written files:")
 
@@ -1685,7 +2236,7 @@ def main() -> int:
 
     print(
         "Implemented mechanisms: abrupt_mean_shift, "
-        "gradual_degradation, variance_instability"
+        "gradual_degradation, variance_instability, sensor_fault"
     )
     print(
         "All other Synthetic Data V2 anomaly mechanisms remain disabled."

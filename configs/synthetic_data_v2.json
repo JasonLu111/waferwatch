@@ -135,21 +135,27 @@
       "id": "sensor_fault",
       "enabled": true,
       "parameters": {
-        "fault_types": [
-          "stuck_at",
-          "dropout",
-          "missing_burst",
-          "calibration_bias"
-        ],
-        "affected_sensor_count": [
-          1,
-          5
-        ],
-        "missing_burst_length_lots": [
-          2,
-          10
-        ]
-      }
+      "injection_rate": 0.03,
+      "fault_types": [
+        "stuck_at",
+        "dropout",
+        "missing_burst",
+        "calibration_bias"
+      ],
+      "affected_sensor_count": [
+        1,
+        5
+      ],
+      "missing_burst_length_lots": [
+        2,
+        10
+      ],
+      "calibration_bias_sigma": [
+        1.5,
+        3.0
+      ],
+      "alarm_lead_hours": 1.0
+    }
     },
     {
       "id": "recipe_product_mix_drift",

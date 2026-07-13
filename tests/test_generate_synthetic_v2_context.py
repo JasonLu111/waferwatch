@@ -6,10 +6,12 @@ from pandas.testing import assert_frame_equal
 from src.data.generate_synthetic_v2_context import (
     apply_abrupt_mean_shift,
     apply_gradual_degradation,
+    apply_sensor_faults,
     apply_variance_instability,
     build_baseline_tables,
     normalize_quality_label,
     validate_generated_tables,
+    validate_sensor_faults,
     validate_variance_instability,
 )
 
@@ -309,3 +311,101 @@ def test_variance_instability_preserves_mean_and_adds_evidence() -> None:
     assert variance_cases["evidence_ids"].str.contains(
         "EVID_VARIANCE_EVENT_001"
     ).all()
+
+
+
+def test_sensor_faults_cover_all_fault_types_with_evidence() -> None:
+    config = load_config(CONFIG_PATH)
+
+    source = pd.DataFrame(
+        {
+            "lot_id": [
+                f"SOURCE_LOT_{index:04d}"
+                for index in range(1, 1601)
+            ],
+            "sensor_001": list(range(1600)),
+            "sensor_002": [index * 2 for index in range(1600)],
+            "sensor_003": [index * 3 for index in range(1600)],
+            "sensor_004": [index * 4 for index in range(1600)],
+            "pass_fail_label": [-1] * 1600,
+        }
+    )
+
+    baseline_tables = build_baseline_tables(source, config)
+    abrupt_tables = apply_abrupt_mean_shift(
+        baseline_tables,
+        config,
+    )
+    gradual_tables = apply_gradual_degradation(
+        abrupt_tables,
+        config,
+    )
+    variance_tables = apply_variance_instability(
+        gradual_tables,
+        config,
+    )
+    injected_tables = apply_sensor_faults(
+        variance_tables,
+        config,
+    )
+
+    validate_generated_tables(injected_tables, config)
+    validate_variance_instability(injected_tables)
+    validate_sensor_faults(injected_tables)
+
+    lots = injected_tables["lots"]
+    sensor_fault_lots = lots.loc[
+        lots["anomaly_mechanism"] == "sensor_fault"
+    ]
+
+    assert len(sensor_fault_lots) == 48
+    assert set(sensor_fault_lots["sensor_fault_type"]) == {
+        "stuck_at",
+        "dropout",
+        "missing_burst",
+        "calibration_bias",
+    }
+    assert sensor_fault_lots["root_cause_id"].eq(
+        "RC_SENSOR_HARDWARE"
+    ).all()
+    assert sensor_fault_lots["synthetic_evidence_id"].ne("").all()
+
+    sensor_fault_events = injected_tables["tool_events"].loc[
+        injected_tables["tool_events"]["event_type"]
+        == "sensor_fault_alarm"
+    ]
+    assert len(sensor_fault_events) == 4
+
+    sensor_fault_cases = injected_tables["rca_ground_truth"].loc[
+        injected_tables["rca_ground_truth"]["root_cause_id"]
+        == "RC_SENSOR_HARDWARE"
+    ]
+    assert len(sensor_fault_cases) == len(sensor_fault_lots)
+
+    missing_burst_lots = sensor_fault_lots.loc[
+        sensor_fault_lots["sensor_fault_type"] == "missing_burst"
+    ]
+    missing_burst_columns = set(
+        ";".join(
+            missing_burst_lots["injected_sensor_columns"].tolist()
+        ).split(";")
+    )
+    assert any(
+        missing_burst_lots[column].isna().all()
+        for column in missing_burst_columns
+        if column
+    )
+
+    stuck_at_lots = sensor_fault_lots.loc[
+        sensor_fault_lots["sensor_fault_type"] == "stuck_at"
+    ]
+    stuck_at_columns = set(
+        ";".join(
+            stuck_at_lots["injected_sensor_columns"].tolist()
+        ).split(";")
+    )
+    assert any(
+        stuck_at_lots[column].dropna().nunique() == 1
+        for column in stuck_at_columns
+        if column
+    )
