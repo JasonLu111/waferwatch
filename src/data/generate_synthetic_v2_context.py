@@ -1572,7 +1572,280 @@ def apply_sensor_faults(
 
     return updated_tables
 
+def apply_recipe_product_mix_drift(
+    tables: dict[str, pd.DataFrame],
+    config: dict[str, Any],
+) -> dict[str, pd.DataFrame]:
+    updated_tables = {
+        table_id: table.copy()
+        for table_id, table in tables.items()
+    }
 
+    mechanism = next(
+        item
+        for item in config["anomaly_mechanisms"]
+        if item["id"] == "recipe_product_mix_drift"
+    )
+    parameters = mechanism["parameters"]
+
+    lots = updated_tables["lots"]
+    process_changes = updated_tables["process_changes"]
+    rca_ground_truth = updated_tables["rca_ground_truth"]
+
+    drift_types = list(parameters["drift_types"])
+    lots_per_change = int(parameters["lots_per_change"])
+
+    expected_drift_types = {
+        "recipe_mix_change",
+        "product_mix_change",
+        "tool_reassignment",
+    }
+
+    if set(drift_types) != expected_drift_types:
+        raise ValueError(
+            "recipe_product_mix_drift must define exactly: "
+            "recipe_mix_change, product_mix_change, tool_reassignment."
+        )
+
+    if lots_per_change <= 0:
+        raise ValueError("lots_per_change must be positive.")
+
+    benign_candidates = (
+        lots.loc[
+            (lots["anomaly_mechanism"] == "none")
+            & (lots["is_synthetic_anomaly"] == 0)
+            & (lots["is_unseen_context"] == 0)
+        ]
+        .sort_values("event_time")
+        .copy()
+    )
+
+    required_candidate_count = lots_per_change * len(drift_types)
+
+    if len(benign_candidates) < required_candidate_count:
+        raise ValueError(
+            "Not enough benign lots are available for the configured "
+            "recipe/product mix drift windows."
+        )
+
+    candidate_segments = np.array_split(
+        benign_candidates.index.to_numpy(),
+        len(drift_types),
+    )
+
+    if any(len(segment) < lots_per_change for segment in candidate_segments):
+        raise ValueError(
+            "Each benign drift segment must contain enough lots."
+        )
+
+    context = config["context"]
+    tools = list(context["tools"])
+    chambers_per_tool = int(context["chambers_per_tool"])
+    recipes = list(context["recipes"])
+    product_families = list(context["product_families"])
+    holdout_tools = set(
+        config["experiment_grid"]["unseen_context"]["holdout_tools"]
+    )
+
+    standard_tools = [
+        tool
+        for tool in tools
+        if tool not in holdout_tools
+    ]
+
+    rng = np.random.default_rng(config["random_seed"] + 505)
+
+    if "benign_drift_type" not in lots.columns:
+        lots["benign_drift_type"] = ""
+
+    if "benign_drift_evidence_id" not in lots.columns:
+        lots["benign_drift_evidence_id"] = ""
+
+    if "is_benign_drift" not in lots.columns:
+        lots["is_benign_drift"] = 0
+
+    process_change_records: list[dict[str, Any]] = []
+    benign_rca_records: list[dict[str, Any]] = []
+
+    for change_number, (drift_type, segment) in enumerate(
+        zip(drift_types, candidate_segments),
+        start=1,
+    ):
+        max_start_position = len(segment) - lots_per_change
+        start_position = int(
+            rng.integers(
+                low=0,
+                high=max_start_position + 1,
+            )
+        )
+        group_indices = segment[
+            start_position : start_position + lots_per_change
+        ].tolist()
+
+        group_lots = lots.loc[group_indices].copy()
+        anchor_lot = group_lots.iloc[0]
+
+        evidence_id = (
+            f"EVID_BENIGN_DRIFT_{drift_type.upper()}_{change_number:03d}"
+        )
+        change_id = (
+            f"CHANGE_BENIGN_{drift_type.upper()}_{change_number:03d}"
+        )
+        changed_at = (
+            pd.Timestamp(anchor_lot["event_time"])
+            - pd.Timedelta(hours=1)
+        )
+
+        if drift_type == "recipe_mix_change":
+            old_values = sorted(
+                group_lots["recipe_id"].astype(str).unique().tolist()
+            )
+            candidate_values = [
+                recipe
+                for recipe in recipes
+                if recipe not in old_values
+            ]
+            new_value = str(
+                rng.choice(
+                    candidate_values if candidate_values else recipes
+                )
+            )
+
+            lots.loc[group_indices, "recipe_id"] = new_value
+            old_value = "|".join(old_values)
+
+        elif drift_type == "product_mix_change":
+            old_values = sorted(
+                group_lots["product_family"]
+                .astype(str)
+                .unique()
+                .tolist()
+            )
+            candidate_values = [
+                family
+                for family in product_families
+                if family not in old_values
+            ]
+            new_value = str(
+                rng.choice(
+                    candidate_values
+                    if candidate_values
+                    else product_families
+                )
+            )
+
+            lots.loc[group_indices, "product_family"] = new_value
+            old_value = "|".join(old_values)
+
+        elif drift_type == "tool_reassignment":
+            old_values = sorted(
+                (
+                    group_lots["tool_id"].astype(str)
+                    + "/"
+                    + group_lots["chamber_id"].astype(str)
+                )
+                .unique()
+                .tolist()
+            )
+            original_tools = set(
+                group_lots["tool_id"].astype(str).unique().tolist()
+            )
+            candidate_tools = [
+                tool
+                for tool in standard_tools
+                if tool not in original_tools
+            ]
+
+            if not candidate_tools:
+                candidate_tools = standard_tools
+
+            new_tool = str(rng.choice(candidate_tools))
+            new_chamber_number = int(
+                rng.integers(
+                    low=1,
+                    high=chambers_per_tool + 1,
+                )
+            )
+            new_chamber = (
+                f"{new_tool}_CH_{new_chamber_number:02d}"
+            )
+            new_value = f"{new_tool}/{new_chamber}"
+
+            lots.loc[group_indices, "tool_id"] = new_tool
+            lots.loc[group_indices, "chamber_id"] = new_chamber
+            lots.loc[group_indices, "is_unseen_context"] = 0
+            old_value = "|".join(old_values)
+
+        else:
+            raise ValueError(
+                f"Unsupported benign drift type: {drift_type}"
+            )
+
+        lots.loc[group_indices, "is_synthetic_anomaly"] = 0
+        lots.loc[group_indices, "anomaly_mechanism"] = "none"
+        lots.loc[group_indices, "root_cause_id"] = "none"
+        lots.loc[group_indices, "benign_drift_type"] = drift_type
+        lots.loc[group_indices, "benign_drift_evidence_id"] = evidence_id
+        lots.loc[group_indices, "is_benign_drift"] = 1
+
+        process_change_records.append(
+            {
+                "change_id": change_id,
+                "change_type": drift_type,
+                "tool_id": lots.loc[group_indices[0], "tool_id"],
+                "chamber_id": lots.loc[group_indices[0], "chamber_id"],
+                "old_value": old_value,
+                "new_value": new_value,
+                "changed_at": changed_at,
+                "related_lot_id": anchor_lot["lot_id"],
+                "is_benign_drift": True,
+                "evidence_id": evidence_id,
+            }
+        )
+
+        benign_rca_records.append(
+            {
+                "case_id": (
+                    f"RCA_BENIGN_DRIFT_{change_number:03d}"
+                ),
+                "lot_id": anchor_lot["lot_id"],
+                "root_cause_id": "RC_BENIGN_MIX_CHANGE",
+                "suspected_cause": (
+                    f"Synthetic benign {drift_type}; not a process fault."
+                ),
+                "recommended_action": (
+                    "Verify the scheduled context change, compare only "
+                    "within the appropriate recipe/product/tool context, "
+                    "and do not trigger corrective maintenance solely "
+                    "from this distribution shift."
+                ),
+                "outcome": (
+                    "Known benign distribution shift; no synthetic "
+                    "quality anomaly was injected."
+                ),
+                "evidence_ids": evidence_id,
+                "supports_abstention": True,
+                "top3_acceptable_causes": "RC_BENIGN_MIX_CHANGE",
+            }
+        )
+
+    updated_tables["process_changes"] = pd.concat(
+        [
+            process_changes,
+            pd.DataFrame(process_change_records),
+        ],
+        ignore_index=True,
+    )
+    updated_tables["rca_ground_truth"] = pd.concat(
+        [
+            rca_ground_truth,
+            pd.DataFrame(benign_rca_records),
+        ],
+        ignore_index=True,
+    )
+    updated_tables["lots"] = lots
+
+    return updated_tables
 
 def validate_generated_tables(
     tables: dict[str, pd.DataFrame],
@@ -2108,6 +2381,117 @@ def validate_sensor_faults(
         )
 
 
+def validate_recipe_product_mix_drift(
+    tables: dict[str, pd.DataFrame],
+    config: dict[str, Any],
+) -> None:
+    lots = tables["lots"]
+
+    mechanism = next(
+        item
+        for item in config["anomaly_mechanisms"]
+        if item["id"] == "recipe_product_mix_drift"
+    )
+    lots_per_change = int(mechanism["parameters"]["lots_per_change"])
+
+    expected_drift_types = {
+        "recipe_mix_change",
+        "product_mix_change",
+        "tool_reassignment",
+    }
+
+    drift_lots = lots.loc[
+        lots["is_benign_drift"] == 1
+    ].copy()
+
+    if len(drift_lots) != lots_per_change * len(expected_drift_types):
+        raise ValueError(
+            "Unexpected number of benign drift lots."
+        )
+
+    if set(drift_lots["benign_drift_type"].unique()) != (
+        expected_drift_types
+    ):
+        raise ValueError(
+            "All three benign drift types must be represented."
+        )
+
+    if not drift_lots["is_synthetic_anomaly"].eq(0).all():
+        raise ValueError(
+            "Benign drift lots must not be synthetic anomalies."
+        )
+
+    if not drift_lots["anomaly_mechanism"].eq("none").all():
+        raise ValueError(
+            "Benign drift lots must keep anomaly_mechanism='none'."
+        )
+
+    if not drift_lots["root_cause_id"].eq("none").all():
+        raise ValueError(
+            "Benign drift lots must keep root_cause_id='none'."
+        )
+
+    if drift_lots["benign_drift_evidence_id"].fillna("").eq("").any():
+        raise ValueError(
+            "Benign drift lots must contain evidence IDs."
+        )
+
+    drift_changes = tables["process_changes"].loc[
+        tables["process_changes"]["change_id"].str.startswith(
+            "CHANGE_BENIGN_",
+            na=False,
+        )
+    ]
+
+    if len(drift_changes) != len(expected_drift_types):
+        raise ValueError(
+            "Exactly three benign process-change records are required."
+        )
+
+    if not drift_changes["is_benign_drift"].eq(True).all():
+        raise ValueError(
+            "All benign process changes must be marked as benign."
+        )
+
+    if set(drift_changes["change_type"]) != expected_drift_types:
+        raise ValueError(
+            "Process-change records must cover all drift types."
+        )
+
+    benign_cases = tables["rca_ground_truth"].loc[
+        tables["rca_ground_truth"]["root_cause_id"]
+        == "RC_BENIGN_MIX_CHANGE"
+    ]
+
+    if len(benign_cases) != len(expected_drift_types):
+        raise ValueError(
+            "Exactly three benign RAG ground-truth cases are required."
+        )
+
+    if not benign_cases["supports_abstention"].eq(True).all():
+        raise ValueError(
+            "Benign drift ground truth must support abstention."
+        )
+
+    expected_evidence_ids = set(drift_changes["evidence_id"])
+    observed_evidence_ids = set(
+        drift_lots["benign_drift_evidence_id"]
+    )
+
+    if expected_evidence_ids != observed_evidence_ids:
+        raise ValueError(
+            "Benign drift lots and process changes must share "
+            "the same evidence IDs."
+        )
+
+    if not benign_cases["evidence_ids"].isin(
+        expected_evidence_ids
+    ).all():
+        raise ValueError(
+            "Benign RAG ground truth must cite process-change evidence."
+        )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
@@ -2168,6 +2552,10 @@ def main() -> int:
         tables = apply_sensor_faults(
             tables=tables,
             config=config,
+        )
+        tables = apply_recipe_product_mix_drift(
+            tables=tables,
+            config=config,
         )        
         validate_generated_tables(
             tables=tables,
@@ -2178,6 +2566,10 @@ def main() -> int:
         )
         validate_sensor_faults(
             tables=tables,
+        )
+        validate_recipe_product_mix_drift(
+            tables=tables,
+            config=config,
         )
         output_dir = (
             args.output_dir.resolve()
@@ -2220,6 +2612,9 @@ def main() -> int:
     sensor_fault_lot_count = int(
         lots["anomaly_mechanism"].eq("sensor_fault").sum()
     )
+    benign_drift_lot_count = int(
+        lots["is_benign_drift"].eq(1).sum()
+    )
     print(
         f"Injected synthetic anomalies: "
         f"{int(lots['is_synthetic_anomaly'].sum())}"
@@ -2228,6 +2623,7 @@ def main() -> int:
     print(f"Gradual-degradation lots: {gradual_lot_count}")
     print(f"Variance-instability lots: {variance_lot_count}")
     print(f"Sensor-fault lots: {sensor_fault_lot_count}")
+    print(f"Benign drift lots: {benign_drift_lot_count}")
     print(f"RCA ground-truth cases: {len(tables['rca_ground_truth'])}")
     print("Written files:")
 
@@ -2235,8 +2631,12 @@ def main() -> int:
         print(f"- {written_path}")
 
     print(
-        "Implemented mechanisms: abrupt_mean_shift, "
+        "Implemented anomaly mechanisms: abrupt_mean_shift, "
         "gradual_degradation, variance_instability, sensor_fault"
+    )
+    print(
+        "Implemented benign drift scenario: "
+        "recipe_product_mix_drift"
     )
     print(
         "All other Synthetic Data V2 anomaly mechanisms remain disabled."

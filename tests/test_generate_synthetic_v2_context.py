@@ -6,11 +6,13 @@ from pandas.testing import assert_frame_equal
 from src.data.generate_synthetic_v2_context import (
     apply_abrupt_mean_shift,
     apply_gradual_degradation,
+    apply_recipe_product_mix_drift,
     apply_sensor_faults,
     apply_variance_instability,
     build_baseline_tables,
     normalize_quality_label,
     validate_generated_tables,
+    validate_recipe_product_mix_drift,
     validate_sensor_faults,
     validate_variance_instability,
 )
@@ -409,3 +411,97 @@ def test_sensor_faults_cover_all_fault_types_with_evidence() -> None:
         for column in stuck_at_columns
         if column
     )
+
+
+def test_recipe_product_mix_drift_is_benign_and_keeps_sensors_unchanged() -> None:
+    config = load_config(CONFIG_PATH)
+
+    source = pd.DataFrame(
+        {
+            "lot_id": [
+                f"SOURCE_LOT_{index:04d}"
+                for index in range(1, 1601)
+            ],
+            "sensor_001": list(range(1600)),
+            "sensor_002": [index * 2 for index in range(1600)],
+            "sensor_003": [index * 3 for index in range(1600)],
+            "sensor_004": [index * 4 for index in range(1600)],
+            "pass_fail_label": [-1] * 1600,
+        }
+    )
+
+    baseline_tables = build_baseline_tables(source, config)
+    abrupt_tables = apply_abrupt_mean_shift(
+        baseline_tables,
+        config,
+    )
+    gradual_tables = apply_gradual_degradation(
+        abrupt_tables,
+        config,
+    )
+    variance_tables = apply_variance_instability(
+        gradual_tables,
+        config,
+    )
+    sensor_fault_tables = apply_sensor_faults(
+        variance_tables,
+        config,
+    )
+
+    sensor_columns = [
+        column
+        for column in sensor_fault_tables["lots"].columns
+        if str(column).startswith("sensor_")
+    ]
+    sensors_before_drift = sensor_fault_tables["lots"][
+        sensor_columns
+    ].copy()
+
+    injected_tables = apply_recipe_product_mix_drift(
+        sensor_fault_tables,
+        config,
+    )
+
+    validate_generated_tables(injected_tables, config)
+    validate_variance_instability(injected_tables)
+    validate_sensor_faults(injected_tables)
+    validate_recipe_product_mix_drift(injected_tables, config)
+
+    lots = injected_tables["lots"]
+    drift_lots = lots.loc[lots["is_benign_drift"] == 1]
+
+    assert len(drift_lots) == 72
+    assert set(drift_lots["benign_drift_type"]) == {
+        "recipe_mix_change",
+        "product_mix_change",
+        "tool_reassignment",
+    }
+    assert drift_lots["is_synthetic_anomaly"].eq(0).all()
+    assert drift_lots["anomaly_mechanism"].eq("none").all()
+    assert drift_lots["root_cause_id"].eq("none").all()
+    assert drift_lots["benign_drift_evidence_id"].ne("").all()
+
+    assert_frame_equal(
+        sensors_before_drift,
+        lots[sensor_columns],
+        check_dtype=True,
+    )
+
+    drift_changes = injected_tables["process_changes"].loc[
+        injected_tables["process_changes"]["change_id"].str.startswith(
+            "CHANGE_BENIGN_",
+            na=False,
+        )
+    ]
+    assert len(drift_changes) == 3
+    assert drift_changes["is_benign_drift"].eq(True).all()
+
+    benign_cases = injected_tables["rca_ground_truth"].loc[
+        injected_tables["rca_ground_truth"]["root_cause_id"]
+        == "RC_BENIGN_MIX_CHANGE"
+    ]
+    assert len(benign_cases) == 3
+    assert benign_cases["supports_abstention"].eq(True).all()
+
+
+

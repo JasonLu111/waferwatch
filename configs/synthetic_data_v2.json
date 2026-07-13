@@ -161,14 +161,15 @@
       "id": "recipe_product_mix_drift",
       "enabled": true,
       "parameters": {
-        "drift_types": [
-          "recipe_mix_change",
-          "product_mix_change",
-          "tool_reassignment"
-        ],
-        "fault_probability": 0.0,
-        "expected_behavior": "benign_distribution_shift"
-      }
+      "drift_types": [
+        "recipe_mix_change",
+        "product_mix_change",
+        "tool_reassignment"
+      ],
+      "lots_per_change": 24,
+      "fault_probability": 0.0,
+      "expected_behavior": "benign_distribution_shift"
+    }
     },
     {
       "id": "contextual_anomaly",
