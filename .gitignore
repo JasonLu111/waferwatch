@@ -13,6 +13,7 @@ __pycache__/
 data/raw/
 data/interim/
 data/processed/*.csv
+!data/processed/secom_cleaned.csv
 data/processed/*.parquet
 data/synthetic/*.csv
 
