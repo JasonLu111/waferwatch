@@ -1,0 +1,335 @@
+{
+  "schema_version": "1.0",
+  "manifest_name": "WaferWatch Synthetic Data V2 Stress-Test Scenario Manifest",
+  "status": "manifest_only",
+  "research_scope": {
+    "statement": "This manifest defines reproducible research stress-test scenarios for public UCI SECOM sensor data augmented with synthetic process context. It is not data from a real semiconductor fab.",
+    "unit_of_analysis": "lot",
+    "random_seed": 20260713
+  },
+  "dataset_contract": {
+    "generator_config": "configs/synthetic_data_v2.json",
+    "quality_validator": "src/data/validate_synthetic_v2_outputs.py",
+    "required_output_tables": [
+      "synthetic_secom_v2.csv",
+      "synthetic_tool_events.csv",
+      "synthetic_maintenance.csv",
+      "synthetic_process_changes.csv",
+      "synthetic_rca_ground_truth.csv"
+    ],
+    "materialization_note": "This manifest defines future evaluation cohorts only. It does not retrain a model or alter generated Synthetic Data V2 outputs."
+  },
+  "evaluation_contract": {
+    "training_population_selector": "is_unseen_context == 0",
+    "default_evaluation_selector": "is_unseen_context == 0",
+    "false_alarm_budget_per_100_lots": 2.0,
+    "engineer_review_capacity_per_100_lots": 5,
+    "detection_metrics": [
+      "pr_auc",
+      "recall_at_false_alarm_budget",
+      "false_alarms_per_100_lots",
+      "expected_operational_cost",
+      "brier_score",
+      "expected_calibration_error"
+    ],
+    "rca_metrics": [
+      "root_cause_top_1_accuracy",
+      "root_cause_top_3_accuracy",
+      "evidence_precision",
+      "unsupported_claim_rate",
+      "abstention_accuracy",
+      "action_recommendation_consistency"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "PREV_01",
+      "scenario_type": "anomaly_prevalence",
+      "description": "Rare 1% synthetic anomaly prevalence under seen manufacturing context.",
+      "evaluation_selector": "is_unseen_context == 0",
+      "target_synthetic_anomaly_rate": 0.01,
+      "included_anomaly_mechanisms": [
+        "abrupt_mean_shift",
+        "gradual_degradation",
+        "variance_instability",
+        "sensor_fault",
+        "contextual_anomaly"
+      ],
+      "label_delay_hours": [
+        12,
+        24,
+        48
+      ],
+      "sampling_method": "stratified_resample_without_replacement",
+      "primary_metrics": [
+        "pr_auc",
+        "recall_at_false_alarm_budget",
+        "false_alarms_per_100_lots",
+        "expected_operational_cost"
+      ]
+    },
+    {
+      "id": "PREV_03",
+      "scenario_type": "anomaly_prevalence",
+      "description": "Reference 3% synthetic anomaly prevalence under seen manufacturing context.",
+      "evaluation_selector": "is_unseen_context == 0",
+      "target_synthetic_anomaly_rate": 0.03,
+      "included_anomaly_mechanisms": [
+        "abrupt_mean_shift",
+        "gradual_degradation",
+        "variance_instability",
+        "sensor_fault",
+        "contextual_anomaly"
+      ],
+      "label_delay_hours": [
+        12,
+        24,
+        48
+      ],
+      "sampling_method": "stratified_resample_without_replacement",
+      "primary_metrics": [
+        "pr_auc",
+        "recall_at_false_alarm_budget",
+        "false_alarms_per_100_lots",
+        "expected_operational_cost"
+      ]
+    },
+    {
+      "id": "PREV_05",
+      "scenario_type": "anomaly_prevalence",
+      "description": "Moderate 5% synthetic anomaly prevalence under seen manufacturing context.",
+      "evaluation_selector": "is_unseen_context == 0",
+      "target_synthetic_anomaly_rate": 0.05,
+      "included_anomaly_mechanisms": [
+        "abrupt_mean_shift",
+        "gradual_degradation",
+        "variance_instability",
+        "sensor_fault",
+        "contextual_anomaly"
+      ],
+      "label_delay_hours": [
+        12,
+        24,
+        48
+      ],
+      "sampling_method": "stratified_resample_without_replacement",
+      "primary_metrics": [
+        "pr_auc",
+        "recall_at_false_alarm_budget",
+        "false_alarms_per_100_lots",
+        "expected_operational_cost"
+      ]
+    },
+    {
+      "id": "PREV_07",
+      "scenario_type": "anomaly_prevalence",
+      "description": "Higher 7% synthetic anomaly prevalence under seen manufacturing context.",
+      "evaluation_selector": "is_unseen_context == 0",
+      "target_synthetic_anomaly_rate": 0.07,
+      "included_anomaly_mechanisms": [
+        "abrupt_mean_shift",
+        "gradual_degradation",
+        "variance_instability",
+        "sensor_fault",
+        "contextual_anomaly"
+      ],
+      "label_delay_hours": [
+        12,
+        24,
+        48
+      ],
+      "sampling_method": "stratified_resample_without_replacement",
+      "primary_metrics": [
+        "pr_auc",
+        "recall_at_false_alarm_budget",
+        "false_alarms_per_100_lots",
+        "expected_operational_cost"
+      ]
+    },
+    {
+      "id": "UNSEEN_TOOL_CHAMBER",
+      "scenario_type": "unseen_context_generalization",
+      "description": "Evaluate generalization to held-out synthetic tool/chamber contexts.",
+      "training_selector": "is_unseen_context == 0",
+      "evaluation_selector": "is_unseen_context == 1",
+      "holdout_unit": [
+        "tool_id",
+        "chamber_id"
+      ],
+      "target_synthetic_anomaly_rate": 0.03,
+      "label_delay_hours": [
+        12,
+        24,
+        48
+      ],
+      "primary_metrics": [
+        "pr_auc",
+        "recall_at_false_alarm_budget",
+        "false_alarms_per_100_lots",
+        "expected_calibration_error"
+      ]
+    },
+    {
+      "id": "LABEL_DELAY_12H",
+      "scenario_type": "label_delay",
+      "description": "Quality outcomes become available 12 hours after lot completion.",
+      "evaluation_selector": "is_unseen_context == 0",
+      "target_synthetic_anomaly_rate": 0.03,
+      "label_delay_hours": [
+        12
+      ],
+      "primary_metrics": [
+        "pr_auc",
+        "recall_at_false_alarm_budget",
+        "expected_operational_cost"
+      ]
+    },
+    {
+      "id": "LABEL_DELAY_24H",
+      "scenario_type": "label_delay",
+      "description": "Quality outcomes become available 24 hours after lot completion.",
+      "evaluation_selector": "is_unseen_context == 0",
+      "target_synthetic_anomaly_rate": 0.03,
+      "label_delay_hours": [
+        24
+      ],
+      "primary_metrics": [
+        "pr_auc",
+        "recall_at_false_alarm_budget",
+        "expected_operational_cost"
+      ]
+    },
+    {
+      "id": "LABEL_DELAY_48H",
+      "scenario_type": "label_delay",
+      "description": "Quality outcomes become available 48 hours after lot completion.",
+      "evaluation_selector": "is_unseen_context == 0",
+      "target_synthetic_anomaly_rate": 0.03,
+      "label_delay_hours": [
+        48
+      ],
+      "primary_metrics": [
+        "pr_auc",
+        "recall_at_false_alarm_budget",
+        "expected_operational_cost"
+      ]
+    },
+    {
+      "id": "BENIGN_RECIPE_MIX",
+      "scenario_type": "benign_drift",
+      "description": "Recipe mix change is a distribution shift, not a process fault.",
+      "evaluation_selector": "is_benign_drift == 1 and benign_drift_type == 'recipe_mix_change'",
+      "benign_drift_type": "recipe_mix_change",
+      "expected_is_synthetic_anomaly": 0,
+      "expected_decision": "abstain_or_no_escalation",
+      "primary_metrics": [
+        "false_alarms_per_100_lots",
+        "abstention_accuracy",
+        "expected_operational_cost"
+      ]
+    },
+    {
+      "id": "BENIGN_PRODUCT_MIX",
+      "scenario_type": "benign_drift",
+      "description": "Product family mix change is a distribution shift, not a process fault.",
+      "evaluation_selector": "is_benign_drift == 1 and benign_drift_type == 'product_mix_change'",
+      "benign_drift_type": "product_mix_change",
+      "expected_is_synthetic_anomaly": 0,
+      "expected_decision": "abstain_or_no_escalation",
+      "primary_metrics": [
+        "false_alarms_per_100_lots",
+        "abstention_accuracy",
+        "expected_operational_cost"
+      ]
+    },
+    {
+      "id": "BENIGN_TOOL_REASSIGNMENT",
+      "scenario_type": "benign_drift",
+      "description": "Tool reassignment is a distribution shift, not a process fault.",
+      "evaluation_selector": "is_benign_drift == 1 and benign_drift_type == 'tool_reassignment'",
+      "benign_drift_type": "tool_reassignment",
+      "expected_is_synthetic_anomaly": 0,
+      "expected_decision": "abstain_or_no_escalation",
+      "primary_metrics": [
+        "false_alarms_per_100_lots",
+        "abstention_accuracy",
+        "expected_operational_cost"
+      ]
+    },
+    {
+      "id": "RCA_ABRUPT_MEAN_SHIFT",
+      "scenario_type": "root_cause",
+      "description": "Evaluate RCA for correlated abrupt sensor shift with a tool alarm.",
+      "root_cause_id": "RC_PRESSURE_INSTABILITY",
+      "required_evidence_types": [
+        "tool_event",
+        "synthetic_lot"
+      ],
+      "expected_top_k": [
+        1,
+        3
+      ],
+      "expected_abstention": false
+    },
+    {
+      "id": "RCA_GRADUAL_DEGRADATION",
+      "scenario_type": "root_cause",
+      "description": "Evaluate RCA for progressive degradation with delayed maintenance.",
+      "root_cause_id": "RC_COMPONENT_WEAR",
+      "required_evidence_types": [
+        "maintenance",
+        "synthetic_lot"
+      ],
+      "expected_top_k": [
+        1,
+        3
+      ],
+      "expected_abstention": false
+    },
+    {
+      "id": "RCA_VARIANCE_INSTABILITY",
+      "scenario_type": "root_cause",
+      "description": "Evaluate RCA for increasing variance without systematic mean change.",
+      "root_cause_id": "RC_PROCESS_VARIABILITY",
+      "required_evidence_types": [
+        "synthetic_lot"
+      ],
+      "expected_top_k": [
+        1,
+        3
+      ],
+      "expected_abstention": false
+    },
+    {
+      "id": "RCA_SENSOR_FAULT",
+      "scenario_type": "root_cause",
+      "description": "Evaluate RCA across stuck-at, dropout, missing burst, and calibration bias faults.",
+      "root_cause_id": "RC_SENSOR_HARDWARE",
+      "required_evidence_types": [
+        "tool_event",
+        "synthetic_lot"
+      ],
+      "expected_top_k": [
+        1,
+        3
+      ],
+      "expected_abstention": false
+    },
+    {
+      "id": "RCA_CONTEXTUAL_ANOMALY",
+      "scenario_type": "root_cause",
+      "description": "Evaluate whether RCA distinguishes Recipe A normal controls from Recipe B anomalies with the same sensor profile.",
+      "root_cause_id": "RC_RECIPE_CONTEXT_MISMATCH",
+      "required_evidence_types": [
+        "tool_event",
+        "recipe_context",
+        "synthetic_lot"
+      ],
+      "expected_top_k": [
+        1,
+        3
+      ],
+      "expected_abstention": false
+    }
+  ]
+}
