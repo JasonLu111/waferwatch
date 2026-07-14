@@ -15,6 +15,7 @@ import pandas as pd
 MANIFEST_PATH = Path("configs/synthetic_data_v2_stress_test_manifest.json")
 DEFAULT_SCENARIO_ID = "BENIGN_RECIPE_MIX"
 
+
 SCENARIO_OUTPUT_FILES: dict[str, dict[str, str]] = {
     "BENIGN_RECIPE_MIX": {
         "lots": "benign_recipe_mix_lots.csv",
@@ -28,13 +29,25 @@ SCENARIO_OUTPUT_FILES: dict[str, dict[str, str]] = {
         "rag_ground_truth": "benign_product_mix_rag_ground_truth.csv",
         "manifest": "benign_product_mix_cohort_manifest.json",
     },
+    "BENIGN_TOOL_REASSIGNMENT": {
+        "lots": "benign_tool_reassignment_lots.csv",
+        "process_changes": (
+            "benign_tool_reassignment_process_changes.csv"
+        ),
+        "rag_ground_truth": (
+            "benign_tool_reassignment_rag_ground_truth.csv"
+        ),
+        "manifest": "benign_tool_reassignment_cohort_manifest.json",
+    },
 }
 
 # Kept for compatibility with the R5.19 recipe-mix test/import surface.
 OUTPUT_FILES = SCENARIO_OUTPUT_FILES[DEFAULT_SCENARIO_ID]
 BENIGN_RECIPE_MIX_OUTPUT_FILES = SCENARIO_OUTPUT_FILES["BENIGN_RECIPE_MIX"]
 BENIGN_PRODUCT_MIX_OUTPUT_FILES = SCENARIO_OUTPUT_FILES["BENIGN_PRODUCT_MIX"]
-
+BENIGN_TOOL_REASSIGNMENT_OUTPUT_FILES = SCENARIO_OUTPUT_FILES[
+    "BENIGN_TOOL_REASSIGNMENT"
+]
 RAG_GROUND_TRUTH_COLUMNS = [
     "case_id",
     "lot_id",
@@ -670,6 +683,18 @@ def materialize_benign_product_mix(
         scenario_id="BENIGN_PRODUCT_MIX",
         output_dir=output_dir,
     )
+
+def materialize_benign_tool_reassignment(
+    repo_root: Path,
+    output_dir: Path | None = None,
+) -> BenignDriftSummary:
+    """Materialize the BENIGN_TOOL_REASSIGNMENT cohort and RAG truth."""
+    return materialize_benign_drift(
+        repo_root=repo_root,
+        scenario_id="BENIGN_TOOL_REASSIGNMENT",
+        output_dir=output_dir,
+    )
+
 
 
 def build_parser() -> argparse.ArgumentParser:

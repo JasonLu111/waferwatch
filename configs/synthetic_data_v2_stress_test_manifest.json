@@ -418,7 +418,24 @@
         "false_alarms_per_100_lots",
         "abstention_accuracy",
         "expected_operational_cost"
-      ]
+            ],
+      "materialization": {
+        "mode": "benign_drift_evaluation_cohort",
+        "source_lots_path": "data/synthetic/v2/synthetic_secom_v2.csv",
+        "source_process_changes_path": "data/synthetic/v2/synthetic_process_changes.csv",
+        "source_rca_ground_truth_path": "data/synthetic/v2/synthetic_rca_ground_truth.csv",
+        "expected_lot_count": 24,
+        "process_change_id": "CHANGE_BENIGN_TOOL_REASSIGNMENT_003",
+        "process_change_type": "tool_reassignment",
+        "process_evidence_id": "EVID_BENIGN_DRIFT_TOOL_REASSIGNMENT_003",
+        "source_rca_case_id": "RCA_BENIGN_DRIFT_003",
+        "source_root_cause_id": "RC_BENIGN_MIX_CHANGE",
+        "expected_source_rca_case_count": 1,
+        "expected_rag_ground_truth_count": 24,
+        "expected_abstention": true,
+        "preserve_core_v2_outputs": true,
+        "disclaimer": "Research-only benign tool-reassignment distribution-shift cohort derived from Synthetic Data V2. It is not data from a real semiconductor fab and must not be interpreted as a process fault."
+      }
     },
     {
       "id": "RCA_ABRUPT_MEAN_SHIFT",

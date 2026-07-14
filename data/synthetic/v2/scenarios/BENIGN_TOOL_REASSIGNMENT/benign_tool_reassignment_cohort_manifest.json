@@ -1,0 +1,56 @@
+{
+  "benign_drift": {
+    "is_synthetic_anomaly": 0,
+    "lot_count": 24,
+    "type": "tool_reassignment"
+  },
+  "cohort": {
+    "benign_lot_count": 24,
+    "expected_abstention": true,
+    "expected_decision": "abstain_or_no_escalation",
+    "expected_is_synthetic_anomaly": 0,
+    "process_change_count": 1,
+    "rag_ground_truth_count": 24,
+    "synthetic_anomaly_count": 0,
+    "synthetic_anomaly_lot_count": 0
+  },
+  "description": "Tool reassignment is a distribution shift, not a process fault.",
+  "disclaimer": "Research-only benign tool-reassignment distribution-shift cohort derived from Synthetic Data V2. It is not data from a real semiconductor fab and must not be interpreted as a process fault.",
+  "materialization_mode": "benign_drift_evaluation_cohort",
+  "output_sha256": {
+    "lots": "539a5b382e4901fcc4199c97852e749fe0299f78ebe8104813059aff0e92783a",
+    "process_changes": "8ecf28980fdd9b9828a1880068c26725a7f204986506edc5a0c21d471e33776d",
+    "rag_ground_truth": "d6ffd192a01268d7793ae0969283559edaf8e49633a9dc00841ca2382dedfb23"
+  },
+  "process_change": {
+    "change_id": "CHANGE_BENIGN_TOOL_REASSIGNMENT_003",
+    "change_type": "tool_reassignment",
+    "evidence_id": "EVID_BENIGN_DRIFT_TOOL_REASSIGNMENT_003",
+    "row_count": 1
+  },
+  "process_change_evidence": {
+    "change_id": "CHANGE_BENIGN_TOOL_REASSIGNMENT_003",
+    "change_type": "tool_reassignment",
+    "evidence_id": "EVID_BENIGN_DRIFT_TOOL_REASSIGNMENT_003",
+    "row_count": 1
+  },
+  "rag_ground_truth": {
+    "expected_abstention": true,
+    "expected_decision": "abstain_or_no_escalation",
+    "row_count": 24,
+    "source_rca_case_id": "RCA_BENIGN_DRIFT_003",
+    "source_root_cause_id": "RC_BENIGN_MIX_CHANGE"
+  },
+  "scenario_id": "BENIGN_TOOL_REASSIGNMENT",
+  "scenario_type": "benign_drift",
+  "source_paths": {
+    "lots": "D:/waferwatch/data/synthetic/v2/synthetic_secom_v2.csv",
+    "process_changes": "D:/waferwatch/data/synthetic/v2/synthetic_process_changes.csv",
+    "rca_ground_truth": "D:/waferwatch/data/synthetic/v2/synthetic_rca_ground_truth.csv"
+  },
+  "source_sha256": {
+    "lots": "1d55897270491e523e217930f2ecb8f1fcafb299d1228a67aebe70fbbf90ca1f",
+    "process_changes": "6eb76ca09fcb52de1c3039f60fb3d1135e62c0182caf5d7b65ecc3fe4acf954b",
+    "rca_ground_truth": "315c209095c0f6018eca416dc652d9c0eacf6679a631e18efc3e641f496898a5"
+  }
+}
