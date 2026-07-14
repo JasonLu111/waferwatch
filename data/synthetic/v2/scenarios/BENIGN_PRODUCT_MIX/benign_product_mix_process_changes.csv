@@ -1,0 +1,2 @@
+change_id,change_type,tool_id,chamber_id,old_value,new_value,changed_at,related_lot_id,is_benign_drift,evidence_id
+CHANGE_BENIGN_PRODUCT_MIX_CHANGE_002,product_mix_change,TOOL_02,TOOL_02_CH_02,LOGIC|MEMORY|MIXED_SIGNAL,LOGIC,2026-05-05 21:00:00,SYNV2_00749,True,EVID_BENIGN_DRIFT_PRODUCT_MIX_CHANGE_002
