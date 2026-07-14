@@ -1,0 +1,33 @@
+{
+  "achieved_synthetic_anomaly_rate": 0.05,
+  "cohort_size": 1000,
+  "label_delay_counts": {
+    "12": 334,
+    "24": 333,
+    "48": 333
+  },
+  "mechanism_counts": {
+    "abrupt_mean_shift": 10,
+    "contextual_anomaly": 10,
+    "gradual_degradation": 10,
+    "sensor_fault": 10,
+    "variance_instability": 10
+  },
+  "output_sha256": {
+    "prev_05_lots.csv": "bbca02a5215aa71ac7d245aff2b0efa55e9c1e92d5c6d063e1cd315a5898babf",
+    "prev_05_maintenance.csv": "a0b876cf749be9d502bbcc1c93b099a2ab784e37e189890c50f17b8641a2be9f",
+    "prev_05_process_changes.csv": "31e832b11c4c91f6b3e044ac0c268f555215b892b7848bf50a8b847021941b48",
+    "prev_05_rca_ground_truth.csv": "857d2456e4ad247af9f51f75b7c32bc2e06b81dd40baa991a296c3ec4845e7a1",
+    "prev_05_tool_events.csv": "e95395e7c1903b9fe2eda9445a248edfb52140d3127f0c44e33e8a991ba6dcc0"
+  },
+  "population_filters": [
+    "is_unseen_context == 0",
+    "is_benign_drift == 0"
+  ],
+  "random_seed": 20262642,
+  "scenario_id": "PREV_05",
+  "schema_version": "1.0",
+  "source_lots": "data/synthetic/v2/synthetic_secom_v2.csv",
+  "source_stress_test_manifest": "configs/synthetic_data_v2_stress_test_manifest.json",
+  "synthetic_anomaly_count": 50
+}

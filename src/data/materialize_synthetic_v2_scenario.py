@@ -31,6 +31,7 @@ BASE_OUTPUT_FILES = {
 SUPPORTED_SCENARIOS = {
     "PREV_01",
     "PREV_03",
+    "PREV_05",
 }
 
 
