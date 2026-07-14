@@ -1,0 +1,33 @@
+{
+  "cohort": {
+    "benign_drift_type": "recipe_mix_change",
+    "benign_lot_count": 24,
+    "expected_decision": "abstain_or_no_escalation",
+    "synthetic_anomaly_count": 0
+  },
+  "disclaimer": "Research-only benign recipe-mix distribution-shift cohort derived from Synthetic Data V2. It is not data from a real semiconductor fab and must not be interpreted as a process fault.",
+  "output_sha256": {
+    "lots": "5d1623b71c97754590fd89fe87d7c02c19ef1eab1e3abca6a40f3a8bd9b9fecd",
+    "process_changes": "6ae0dffdf2437e3815d159ee6e46c3556234f3c22457239f0a0c72fb6862a932",
+    "rag_ground_truth": "7ee0576749330bf1da6906fcf2fa8e8a146f262a5b380ec0a067afa1448ce440"
+  },
+  "process_change_evidence": {
+    "change_id": "CHANGE_BENIGN_RECIPE_MIX_CHANGE_001",
+    "change_type": "recipe_mix_change",
+    "evidence_id": "EVID_BENIGN_DRIFT_RECIPE_MIX_CHANGE_001"
+  },
+  "rag_ground_truth": {
+    "expected_abstention": true,
+    "row_count": 24,
+    "source_rca_case_id": "RCA_BENIGN_DRIFT_001",
+    "source_root_cause_id": "RC_BENIGN_MIX_CHANGE"
+  },
+  "scenario_id": "BENIGN_RECIPE_MIX",
+  "scenario_type": "benign_drift",
+  "schema_version": "1.0",
+  "source_sha256": {
+    "lots": "1d55897270491e523e217930f2ecb8f1fcafb299d1228a67aebe70fbbf90ca1f",
+    "process_changes": "6eb76ca09fcb52de1c3039f60fb3d1135e62c0182caf5d7b65ecc3fe4acf954b",
+    "rca_ground_truth": "315c209095c0f6018eca416dc652d9c0eacf6679a631e18efc3e641f496898a5"
+  }
+}

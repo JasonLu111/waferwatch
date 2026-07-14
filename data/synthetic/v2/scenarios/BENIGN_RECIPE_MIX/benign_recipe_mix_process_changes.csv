@@ -1,0 +1,2 @@
+change_id,change_type,tool_id,chamber_id,old_value,new_value,changed_at,related_lot_id,is_benign_drift,evidence_id
+CHANGE_BENIGN_RECIPE_MIX_CHANGE_001,recipe_mix_change,TOOL_01,TOOL_01_CH_01,RCP_A|RCP_B|RCP_C,RCP_C,2026-04-01 05:00:00,SYNV2_00541,True,EVID_BENIGN_DRIFT_RECIPE_MIX_CHANGE_001
