@@ -1,0 +1,29 @@
+{
+  "achieved_synthetic_anomaly_rate": 0.031088082901554404,
+  "disclaimer": "The overlay transfers research-use synthetic anomaly templates into held-out TOOL_08 host lots. It is a counterfactual stress-test artifact, not a real semiconductor-fab event.",
+  "evaluation_lot_count": 193,
+  "mechanism_counts": {
+    "abrupt_mean_shift": 1,
+    "contextual_anomaly": 1,
+    "gradual_degradation": 1,
+    "sensor_fault": 2,
+    "variance_instability": 1
+  },
+  "output_sha256": {
+    "unseen_tool_chamber_eval_lots.csv": "bbe0de1c188d185e13175321e0ac512db5966ec69e5ea533b9e4bcddf7880066",
+    "unseen_tool_chamber_eval_maintenance.csv": "7ae9429546a07f00d6ee51b152187ccabd9fbc7aeb199bf5add32d652d576b9f",
+    "unseen_tool_chamber_eval_process_changes.csv": "31e832b11c4c91f6b3e044ac0c268f555215b892b7848bf50a8b847021941b48",
+    "unseen_tool_chamber_eval_rca_ground_truth.csv": "bbe25e37a39cbf4bc5c6215672d341147d6755bb54b48c677dee8f43fa7ebd17",
+    "unseen_tool_chamber_eval_tool_events.csv": "3bd2f6c9693c30a2c0358cc0aeb04325d85953f565d87c759526ea8575f03d05",
+    "unseen_tool_chamber_overlay_provenance.csv": "c0fb3484556fa139e424cc58e64815f3d03c78a17c1665906bb652e03ff07f83",
+    "unseen_tool_chamber_train_lots.csv": "4fff88b23b0f4b7c9e71a53a8c15cc119e644853078a1eafc046e90faa18d1a8"
+  },
+  "overlay_mode": "counterfactual_unseen_context_overlay",
+  "preserves_core_v2_outputs": true,
+  "random_seed": 20275114,
+  "scenario_id": "UNSEEN_TOOL_CHAMBER",
+  "schema_version": "1.0",
+  "source_lots": "data/synthetic/v2/synthetic_secom_v2.csv",
+  "synthetic_anomaly_count": 6,
+  "training_lot_count": 1374
+}

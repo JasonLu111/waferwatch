@@ -190,29 +190,46 @@
             "include_contextual_controls": true
         }
         },
-    {
-      "id": "UNSEEN_TOOL_CHAMBER",
-      "scenario_type": "unseen_context_generalization",
-      "description": "Evaluate generalization to held-out synthetic tool/chamber contexts.",
-      "training_selector": "is_unseen_context == 0",
-      "evaluation_selector": "is_unseen_context == 1",
-      "holdout_unit": [
-        "tool_id",
-        "chamber_id"
-      ],
-      "target_synthetic_anomaly_rate": 0.03,
-      "label_delay_hours": [
-        12,
-        24,
-        48
-      ],
-      "primary_metrics": [
-        "pr_auc",
-        "recall_at_false_alarm_budget",
-        "false_alarms_per_100_lots",
-        "expected_calibration_error"
-      ]
-    },
+          {
+        "id": "UNSEEN_TOOL_CHAMBER",
+        "scenario_type": "unseen_context_generalization",
+        "description": "Evaluate generalization to held-out synthetic TOOL_08 chamber contexts using a research-only counterfactual anomaly overlay.",
+        "training_selector": "is_unseen_context == 0",
+        "evaluation_selector": "is_unseen_context == 1",
+        "holdout_unit": [
+          "tool_id",
+          "chamber_id"
+        ],
+        "target_synthetic_anomaly_rate": 0.03,
+        "label_delay_hours": [
+          12,
+          24,
+          48
+        ],
+        "primary_metrics": [
+          "pr_auc",
+          "recall_at_false_alarm_budget",
+          "false_alarms_per_100_lots",
+          "expected_calibration_error"
+        ],
+        "materialization": {
+          "mode": "counterfactual_unseen_context_overlay",
+          "base_evaluation_selector": "is_unseen_context == 1 and is_synthetic_anomaly == 0",
+          "target_anomaly_count": 6,
+          "achieved_anomaly_rate": 0.0310880829,
+          "include_contextual_control": true,
+          "preserve_core_v2_outputs": true,
+          "mechanism_plan": [
+            "abrupt_mean_shift",
+            "gradual_degradation",
+            "variance_instability",
+            "sensor_fault",
+            "contextual_anomaly",
+            "sensor_fault"
+          ],
+          "disclaimer": "The overlay transfers research-use synthetic anomaly templates into held-out TOOL_08 host lots. It is a counterfactual stress-test artifact, not a real semiconductor-fab event."
+        }
+      },
     {
       "id": "LABEL_DELAY_12H",
       "scenario_type": "label_delay",

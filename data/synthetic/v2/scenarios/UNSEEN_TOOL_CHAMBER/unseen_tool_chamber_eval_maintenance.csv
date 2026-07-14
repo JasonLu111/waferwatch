@@ -1,0 +1,2 @@
+maintenance_id,tool_id,chamber_id,scheduled_at,performed_at,delay_days,maintenance_type,component,replacement_performed,related_lot_id,evidence_id
+MAINT_UNSEEN_UNSEEN_002,TOOL_08,TOOL_08_CH_02,2026-02-21 22:00:00,2026-02-26 22:00:00,5,counterfactual_preventive_inspection,,,,EVID_UNSEEN_MAINT_UNSEEN_002
