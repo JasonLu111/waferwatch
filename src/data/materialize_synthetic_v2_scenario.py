@@ -32,6 +32,7 @@ SUPPORTED_SCENARIOS = {
     "PREV_01",
     "PREV_03",
     "PREV_05",
+    "PREV_07",
 }
 
 
