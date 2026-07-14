@@ -281,7 +281,30 @@
         "pr_auc",
         "recall_at_false_alarm_budget",
         "expected_operational_cost"
-      ]
+      ],
+      "materialization": {
+        "mode": "fixed_label_delay_overlay",
+        "source_cohort_id": "PREV_03",
+        "source_cohort_path": "data/synthetic/v2/scenarios/PREV_03",
+        "cohort_size": 1000,
+        "target_synthetic_anomaly_count": 30,
+        "target_anomaly_mechanism_counts": {
+          "abrupt_mean_shift": 6,
+          "gradual_degradation": 6,
+          "variance_instability": 6,
+          "sensor_fault": 6,
+          "contextual_anomaly": 6
+        },
+        "fixed_label_delay_hours": 24,
+        "label_available_at_column": "quality_label_available_at",
+        "exclude_benign_drift": true,
+        "preserve_source_lot_ids": true,
+        "preserve_source_sensor_values": true,
+        "preserve_source_context": true,
+        "preserve_core_v2_outputs": true,
+        "quality_label_policy": "quality_label remains offline evaluation ground truth and must not be exposed to an online policy before quality_label_available_at.",
+        "disclaimer": "Research-only fixed 24-hour quality-label availability overlay derived from PREV_03; it is not data from a real semiconductor fab."
+      }
     },
     {
       "id": "LABEL_DELAY_48H",

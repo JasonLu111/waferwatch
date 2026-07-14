@@ -1,4 +1,4 @@
-"""Materialize the fixed 12-hour Synthetic Data V2 label-delay cohort."""
+"""Materialize fixed Synthetic Data V2 label-delay cohorts."""
 
 from __future__ import annotations
 
@@ -15,7 +15,12 @@ import pandas as pd
 MANIFEST_PATH = Path(
     "configs/synthetic_data_v2_stress_test_manifest.json"
 )
-SCENARIO_ID = "LABEL_DELAY_12H"
+DEFAULT_SCENARIO_ID = "LABEL_DELAY_12H"
+SCENARIO_ID = DEFAULT_SCENARIO_ID
+SUPPORTED_SCENARIO_DELAYS = {
+    "LABEL_DELAY_12H": 12,
+    "LABEL_DELAY_24H": 24,
+}
 TABLE_IDS = (
     "lots",
     "tool_events",
@@ -23,18 +28,29 @@ TABLE_IDS = (
     "process_changes",
     "rca_ground_truth",
 )
-OUTPUT_FILES = {
-    "lots": "label_delay_12h_lots.csv",
-    "tool_events": "label_delay_12h_tool_events.csv",
-    "maintenance": "label_delay_12h_maintenance.csv",
-    "process_changes": "label_delay_12h_process_changes.csv",
-    "rca_ground_truth": "label_delay_12h_rca_ground_truth.csv",
-    "manifest": "label_delay_12h_cohort_manifest.json",
-}
+
+
+def cohort_output_files(scenario_id: str) -> dict[str, str]:
+    """Return stable output filenames for one label-delay scenario."""
+
+    prefix = scenario_id.lower()
+
+    return {
+        "lots": f"{prefix}_lots.csv",
+        "tool_events": f"{prefix}_tool_events.csv",
+        "maintenance": f"{prefix}_maintenance.csv",
+        "process_changes": f"{prefix}_process_changes.csv",
+        "rca_ground_truth": f"{prefix}_rca_ground_truth.csv",
+        "manifest": f"{prefix}_cohort_manifest.json",
+    }
+
+
+# Backward-compatible constant used by the existing 12-hour test.
+OUTPUT_FILES = cohort_output_files(DEFAULT_SCENARIO_ID)
 
 
 class LabelDelayMaterializationError(ValueError):
-    """Raised when the fixed label-delay cohort is invalid."""
+    """Raised when a fixed label-delay cohort is invalid."""
 
 
 @dataclass(frozen=True)
@@ -85,22 +101,16 @@ def _true_mask(series: pd.Series) -> pd.Series:
     return normalized.isin({"1", "1.0", "true", "yes"})
 
 
-def _cohort_files(scenario_id: str) -> dict[str, str]:
-    prefix = scenario_id.lower()
-
-    return {
-        "lots": f"{prefix}_lots.csv",
-        "tool_events": f"{prefix}_tool_events.csv",
-        "maintenance": f"{prefix}_maintenance.csv",
-        "process_changes": f"{prefix}_process_changes.csv",
-        "rca_ground_truth": f"{prefix}_rca_ground_truth.csv",
-        "manifest": f"{prefix}_cohort_manifest.json",
-    }
-
-
 def _load_contract(
     repo_root: Path,
+    scenario_id: str,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    if scenario_id not in SUPPORTED_SCENARIO_DELAYS:
+        _fail(
+            "Supported label-delay scenarios are: "
+            f"{sorted(SUPPORTED_SCENARIO_DELAYS)}."
+        )
+
     manifest = _load_json(repo_root / MANIFEST_PATH)
     scenarios = manifest.get("scenarios")
 
@@ -112,45 +122,40 @@ def _load_contract(
             item
             for item in scenarios
             if isinstance(item, dict)
-            and item.get("id") == SCENARIO_ID
+            and item.get("id") == scenario_id
         ),
         None,
     )
 
     if scenario is None:
-        _fail(f"Stress-test scenario is missing: {SCENARIO_ID}")
+        _fail(f"Stress-test scenario is missing: {scenario_id}")
 
     if scenario.get("scenario_type") != "label_delay":
-        _fail("LABEL_DELAY_12H must use scenario_type=label_delay.")
+        _fail(f"{scenario_id} must use scenario_type=label_delay.")
 
     if scenario.get("evaluation_selector") != (
         "is_unseen_context == 0"
     ):
-        _fail(
-            "LABEL_DELAY_12H must evaluate seen contexts only."
-        )
+        _fail(f"{scenario_id} must evaluate seen contexts only.")
 
     raw_delays = scenario.get("label_delay_hours")
 
     if not isinstance(raw_delays, list):
-        _fail(
-            "LABEL_DELAY_12H label_delay_hours must be a list."
-        )
+        _fail(f"{scenario_id} label_delay_hours must be a list.")
 
+    expected_delay = SUPPORTED_SCENARIO_DELAYS[scenario_id]
     delays = [int(delay) for delay in raw_delays]
 
-    if delays != [12]:
+    if delays != [expected_delay]:
         _fail(
-            "LABEL_DELAY_12H must define exactly one 12-hour "
-            "label-delay condition."
+            f"{scenario_id} must define exactly one "
+            f"{expected_delay}-hour delay condition."
         )
 
     contract = scenario.get("materialization")
 
     if not isinstance(contract, dict):
-        _fail(
-            "LABEL_DELAY_12H requires a materialization contract."
-        )
+        _fail(f"{scenario_id} requires a materialization contract.")
 
     required_contract_keys = {
         "mode",
@@ -175,25 +180,26 @@ def _load_contract(
 
     if missing_contract_keys:
         _fail(
-            "LABEL_DELAY_12H materialization contract is missing: "
+            f"{scenario_id} materialization contract is missing: "
             f"{sorted(missing_contract_keys)}"
         )
 
     if contract["mode"] != "fixed_label_delay_overlay":
         _fail(
-            "LABEL_DELAY_12H must use "
+            f"{scenario_id} must use "
             "mode=fixed_label_delay_overlay."
         )
 
     if str(contract["source_cohort_id"]) != "PREV_03":
         _fail(
-            "LABEL_DELAY_12H must use PREV_03 as its fixed "
+            f"{scenario_id} must use PREV_03 as its fixed "
             "peer cohort."
         )
 
-    if int(contract["fixed_label_delay_hours"]) != 12:
+    if int(contract["fixed_label_delay_hours"]) != expected_delay:
         _fail(
-            "LABEL_DELAY_12H fixed_label_delay_hours must be 12."
+            f"{scenario_id} fixed_label_delay_hours must be "
+            f"{expected_delay}."
         )
 
     mechanism_counts = contract[
@@ -230,7 +236,7 @@ def _load_source_tables(
     source_dir = (
         repo_root / str(contract["source_cohort_path"])
     ).resolve()
-    source_files = _cohort_files(source_id)
+    source_files = cohort_output_files(source_id)
     required_paths = {
         table_id: source_dir / filename
         for table_id, filename in source_files.items()
@@ -243,16 +249,15 @@ def _load_source_tables(
 
     if missing_paths:
         _fail(
-            "LABEL_DELAY_12H requires the committed PREV_03 "
-            "cohort. Missing: "
-            f"{missing_paths}"
+            "Label-delay materialization requires the committed "
+            f"{source_id} cohort. Missing: {missing_paths}"
         )
 
     source_manifest = _load_json(required_paths["manifest"])
 
     if source_manifest.get("scenario_id") != source_id:
         _fail(
-            "Source cohort manifest does not describe PREV_03."
+            f"Source cohort manifest does not describe {source_id}."
         )
 
     source_tables = {
@@ -302,21 +307,15 @@ def _assert_lot_contract(
         )
 
     if len(lots) != int(contract["cohort_size"]):
-        _fail(
-            "Unexpected LABEL_DELAY_12H cohort size."
-        )
+        _fail("Unexpected label-delay cohort size.")
 
     if _true_mask(lots["is_unseen_context"]).any():
-        _fail(
-            "LABEL_DELAY_12H must contain seen contexts only."
-        )
+        _fail("Label-delay cohorts must contain seen contexts only.")
 
     if bool(contract["exclude_benign_drift"]) and _true_mask(
         lots["is_benign_drift"]
     ).any():
-        _fail(
-            "LABEL_DELAY_12H must exclude benign drift lots."
-        )
+        _fail("Label-delay cohorts must exclude benign drift lots.")
 
     anomaly_mask = _true_mask(lots["is_synthetic_anomaly"])
     anomaly_lots = lots.loc[anomaly_mask].copy()
@@ -325,9 +324,7 @@ def _assert_lot_contract(
     )
 
     if len(anomaly_lots) != expected_anomaly_count:
-        _fail(
-            "Unexpected LABEL_DELAY_12H synthetic anomaly count."
-        )
+        _fail("Unexpected synthetic anomaly count.")
 
     achieved_anomaly_rate = len(anomaly_lots) / len(lots)
     expected_anomaly_rate = float(
@@ -335,9 +332,7 @@ def _assert_lot_contract(
     )
 
     if abs(achieved_anomaly_rate - expected_anomaly_rate) > 1e-12:
-        _fail(
-            "Unexpected LABEL_DELAY_12H anomaly prevalence."
-        )
+        _fail("Unexpected synthetic anomaly prevalence.")
 
     expected_mechanism_counts = {
         str(mechanism): int(count)
@@ -349,13 +344,13 @@ def _assert_lot_contract(
 
     if actual_mechanism_counts != expected_mechanism_counts:
         _fail(
-            "Unexpected LABEL_DELAY_12H mechanism counts. "
+            "Unexpected mechanism counts. "
             f"Expected {expected_mechanism_counts}, "
             f"got {actual_mechanism_counts}."
         )
 
     if "lot_id" not in rca_ground_truth.columns:
-        _fail("RCA ground-truth output must contain lot_id.")
+        _fail("RCA ground truth must contain lot_id.")
 
     anomaly_lot_ids = {
         str(lot_id)
@@ -367,16 +362,22 @@ def _assert_lot_contract(
         if str(lot_id).strip()
     }
 
+    if len(rca_ground_truth) != len(anomaly_lots):
+        _fail(
+            "RCA ground truth must contain one case for every "
+            "synthetic anomaly lot."
+        )
+
     if rca_lot_ids != anomaly_lot_ids:
         _fail(
             "RCA ground truth must cover exactly the synthetic "
-            "anomaly lots in LABEL_DELAY_12H."
+            "anomaly lots."
         )
 
 
 def _apply_fixed_label_delay(
     source_lots: pd.DataFrame,
-    scenario: dict[str, Any],
+    scenario_id: str,
     contract: dict[str, Any],
 ) -> pd.DataFrame:
     label_available_at_column = str(
@@ -412,9 +413,7 @@ def _apply_fixed_label_delay(
     )
 
     if event_times.isna().any():
-        _fail(
-            "Source PREV_03 has invalid event_time values."
-        )
+        _fail("Source PREV_03 has invalid event_time values.")
 
     fixed_delay_hours = int(
         contract["fixed_label_delay_hours"]
@@ -429,9 +428,7 @@ def _apply_fixed_label_delay(
         event_times
         + pd.to_timedelta(fixed_delay_hours, unit="h")
     ).dt.strftime("%Y-%m-%d %H:%M:%S")
-    materialized_lots["label_delay_scenario_id"] = (
-        str(scenario["id"])
-    )
+    materialized_lots["label_delay_scenario_id"] = scenario_id
 
     return materialized_lots
 
@@ -476,7 +473,7 @@ def _validate_materialized_tables(
         )
     except AssertionError as error:
         _fail(
-            "LABEL_DELAY_12H changed source values other than "
+            "Label-delay overlay changed source values other than "
             f"label_delay_hours: {error}"
         )
 
@@ -489,8 +486,7 @@ def _validate_materialized_tables(
         fixed_delay_hours
     ).all():
         _fail(
-            "Every LABEL_DELAY_12H lot must use a 12-hour "
-            "label delay."
+            "Every lot must use the configured fixed label delay."
         )
 
     expected_source_delays = pd.to_numeric(
@@ -527,15 +523,14 @@ def _validate_materialized_tables(
     ).all():
         _fail(
             "quality_label_available_at must equal event_time "
-            "plus 12 hours."
+            "plus the configured delay."
         )
 
     if not materialized_lots[
         "label_delay_scenario_id"
-    ].eq(SCENARIO_ID).all():
+    ].eq(str(scenario["id"])).all():
         _fail(
-            "Every lot must identify LABEL_DELAY_12H as its "
-            "label-delay scenario."
+            "Every lot must identify its label-delay scenario."
         )
 
     for table_id in TABLE_IDS[1:]:
@@ -547,8 +542,8 @@ def _validate_materialized_tables(
             )
         except AssertionError as error:
             _fail(
-                f"LABEL_DELAY_12H must preserve {table_id}: "
-                f"{error}"
+                f"Label-delay materialization must preserve "
+                f"{table_id}: {error}"
             )
 
 
@@ -563,12 +558,13 @@ def _write_csv(frame: pd.DataFrame, path: Path) -> None:
 def _write_cohort_tables(
     cohort_tables: dict[str, pd.DataFrame],
     output_dir: Path,
+    output_files: dict[str, str],
 ) -> dict[str, str]:
     output_dir.mkdir(parents=True, exist_ok=True)
     output_hashes: dict[str, str] = {}
 
     for table_id in TABLE_IDS:
-        output_path = output_dir / OUTPUT_FILES[table_id]
+        output_path = output_dir / output_files[table_id]
         _write_csv(cohort_tables[table_id], output_path)
         output_hashes[table_id] = _sha256(output_path)
 
@@ -577,6 +573,7 @@ def _write_cohort_tables(
 
 def _write_generated_manifest(
     output_dir: Path,
+    output_files: dict[str, str],
     source_dir: Path,
     scenario: dict[str, Any],
     contract: dict[str, Any],
@@ -584,7 +581,7 @@ def _write_generated_manifest(
     output_hashes: dict[str, str],
 ) -> None:
     source_id = str(contract["source_cohort_id"])
-    source_files = _cohort_files(source_id)
+    source_files = cohort_output_files(source_id)
     source_lots_path = source_dir / source_files["lots"]
     source_manifest_path = source_dir / source_files["manifest"]
 
@@ -600,7 +597,9 @@ def _write_generated_manifest(
         },
         "materialization": {
             "mode": contract["mode"],
-            "fixed_label_delay_hours": summary.label_delay_hours,
+            "fixed_label_delay_hours": (
+                summary.label_delay_hours
+            ),
             "label_available_at_column": contract[
                 "label_available_at_column"
             ],
@@ -636,7 +635,7 @@ def _write_generated_manifest(
         "disclaimer": contract["disclaimer"],
     }
 
-    manifest_path = output_dir / OUTPUT_FILES["manifest"]
+    manifest_path = output_dir / output_files["manifest"]
     manifest_path.write_text(
         json.dumps(
             generated_manifest,
@@ -648,14 +647,18 @@ def _write_generated_manifest(
     )
 
 
-def materialize_label_delay_12h(
+def materialize_label_delay(
     repo_root: Path,
+    scenario_id: str = DEFAULT_SCENARIO_ID,
     output_dir: Path | None = None,
 ) -> LabelDelaySummary:
-    """Materialize and validate the fixed 12-hour label-delay cohort."""
+    """Materialize and validate one supported fixed-delay cohort."""
 
     repo_root = repo_root.resolve()
-    scenario, contract = _load_contract(repo_root)
+    scenario, contract = _load_contract(
+        repo_root=repo_root,
+        scenario_id=scenario_id,
+    )
     source_tables, source_dir = _load_source_tables(
         repo_root=repo_root,
         contract=contract,
@@ -674,7 +677,7 @@ def materialize_label_delay_12h(
     }
     cohort_tables["lots"] = _apply_fixed_label_delay(
         source_lots=source_tables["lots"],
-        scenario=scenario,
+        scenario_id=scenario_id,
         contract=contract,
     )
 
@@ -692,16 +695,17 @@ def materialize_label_delay_12h(
             / "synthetic"
             / "v2"
             / "scenarios"
-            / SCENARIO_ID
+            / scenario_id
         )
 
     output_dir = output_dir.resolve()
+    output_files = cohort_output_files(scenario_id)
     lots = cohort_tables["lots"]
     anomaly_count = int(
         _true_mask(lots["is_synthetic_anomaly"]).sum()
     )
     summary = LabelDelaySummary(
-        scenario_id=SCENARIO_ID,
+        scenario_id=scenario_id,
         source_cohort_id=str(contract["source_cohort_id"]),
         cohort_size=len(lots),
         synthetic_anomaly_count=anomaly_count,
@@ -716,9 +720,11 @@ def materialize_label_delay_12h(
     output_hashes = _write_cohort_tables(
         cohort_tables=cohort_tables,
         output_dir=output_dir,
+        output_files=output_files,
     )
     _write_generated_manifest(
         output_dir=output_dir,
+        output_files=output_files,
         source_dir=source_dir,
         scenario=scenario,
         contract=contract,
@@ -729,12 +735,31 @@ def materialize_label_delay_12h(
     return summary
 
 
+def materialize_label_delay_12h(
+    repo_root: Path,
+    output_dir: Path | None = None,
+) -> LabelDelaySummary:
+    """Backward-compatible 12-hour materializer."""
+
+    return materialize_label_delay(
+        repo_root=repo_root,
+        scenario_id="LABEL_DELAY_12H",
+        output_dir=output_dir,
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Materialize the LABEL_DELAY_12H Synthetic Data V2 "
-            "stress-test cohort."
+            "Materialize a fixed Synthetic Data V2 "
+            "label-delay stress-test cohort."
         )
+    )
+    parser.add_argument(
+        "--scenario-id",
+        choices=sorted(SUPPORTED_SCENARIO_DELAYS),
+        default=DEFAULT_SCENARIO_ID,
+        help="Supported label-delay scenario ID.",
     )
     parser.add_argument(
         "--output-dir",
@@ -742,7 +767,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Optional output directory. Defaults to "
-            "data/synthetic/v2/scenarios/LABEL_DELAY_12H."
+            "data/synthetic/v2/scenarios/<scenario-id>."
         ),
     )
 
@@ -753,8 +778,9 @@ def main() -> int:
     args = build_parser().parse_args()
 
     try:
-        summary = materialize_label_delay_12h(
+        summary = materialize_label_delay(
             repo_root=Path.cwd(),
+            scenario_id=args.scenario_id,
             output_dir=args.output_dir,
         )
     except (
