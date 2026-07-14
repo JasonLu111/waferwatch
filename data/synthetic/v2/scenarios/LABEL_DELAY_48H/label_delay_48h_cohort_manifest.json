@@ -1,0 +1,43 @@
+{
+  "cohort": {
+    "benign_drift_included": false,
+    "mechanism_counts": {
+      "abrupt_mean_shift": 6,
+      "contextual_anomaly": 6,
+      "gradual_degradation": 6,
+      "sensor_fault": 6,
+      "variance_instability": 6
+    },
+    "size": 1000,
+    "synthetic_anomaly_count": 30,
+    "synthetic_anomaly_rate": 0.03,
+    "unseen_context_included": false
+  },
+  "disclaimer": "Research-only fixed 48-hour quality-label availability overlay derived from PREV_03; it is not data from a real semiconductor fab.",
+  "materialization": {
+    "fixed_label_delay_hours": 48,
+    "label_available_at_column": "quality_label_available_at",
+    "mode": "fixed_label_delay_overlay",
+    "preserve_core_v2_outputs": true,
+    "preserve_source_context": true,
+    "preserve_source_lot_ids": true,
+    "preserve_source_sensor_values": true,
+    "quality_label_policy": "quality_label remains offline evaluation ground truth and must not be exposed to an online policy before quality_label_available_at."
+  },
+  "output_sha256": {
+    "lots": "fdb93d19080e5a4f9caf31e6cc24c1374f8db0fe29f6c54e63718ba27e4f07d7",
+    "maintenance": "a0b876cf749be9d502bbcc1c93b099a2ab784e37e189890c50f17b8641a2be9f",
+    "process_changes": "31e832b11c4c91f6b3e044ac0c268f555215b892b7848bf50a8b847021941b48",
+    "rca_ground_truth": "8728d662420da9fd1d8b2608fb0c06222974b09b2613836a847cf89979e5cccc",
+    "tool_events": "e95395e7c1903b9fe2eda9445a248edfb52140d3127f0c44e33e8a991ba6dcc0"
+  },
+  "scenario_id": "LABEL_DELAY_48H",
+  "scenario_type": "label_delay",
+  "schema_version": "1.0",
+  "source_cohort": {
+    "id": "PREV_03",
+    "lots_sha256": "3bf4dfcdf207ccbb77ba7a26f43a3599aec5ad21bdb3e6b65a390a1815fbc9dc",
+    "manifest_sha256": "1cfe318e796f0075c43590634dc7a418beb68dc49df28b9ac09b63aca1f45aa9",
+    "path": "data/synthetic/v2/scenarios/PREV_03"
+  }
+}
