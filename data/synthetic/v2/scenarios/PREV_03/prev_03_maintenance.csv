@@ -1,0 +1,2 @@
+maintenance_id,tool_id,chamber_id,scheduled_at,performed_at,delay_days,maintenance_type,component,replacement_performed,related_lot_id,evidence_id
+MAINT_GRADUAL_001,TOOL_05,TOOL_05_CH_02,2025-12-30 06:00:00,2026-01-04 06:00:00,5,preventive_inspection,pressure_control_valve,False,SYNV2_00019,EVID_MAINT_DELAY_GRADUAL_001

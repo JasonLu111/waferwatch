@@ -1,6 +1,6 @@
-"""Materialize reproducible Synthetic Data V2 stress-test cohorts.
+"""Materialize reproducible Synthetic Data V2 prevalence cohorts.
 
-R5.11 deliberately supports only PREV_01. It does not train a model or
+R5.12 supports PREV_01 and PREV_03 only. It does not train a model or
 modify MLflow, FastAPI, Docker, or API schemas.
 """
 
@@ -28,18 +28,32 @@ BASE_OUTPUT_FILES = {
     ),
 }
 
-COHORT_OUTPUT_FILES = {
-    "lots": "prev_01_lots.csv",
-    "tool_events": "prev_01_tool_events.csv",
-    "maintenance": "prev_01_maintenance.csv",
-    "process_changes": "prev_01_process_changes.csv",
-    "rca_ground_truth": "prev_01_rca_ground_truth.csv",
-    "manifest": "prev_01_cohort_manifest.json",
+SUPPORTED_SCENARIOS = {
+    "PREV_01",
+    "PREV_03",
 }
 
 
+def cohort_output_files(scenario_id: str) -> dict[str, str]:
+    """Return stable cohort filenames for one supported scenario."""
+    prefix = scenario_id.lower()
+
+    return {
+        "lots": f"{prefix}_lots.csv",
+        "tool_events": f"{prefix}_tool_events.csv",
+        "maintenance": f"{prefix}_maintenance.csv",
+        "process_changes": f"{prefix}_process_changes.csv",
+        "rca_ground_truth": f"{prefix}_rca_ground_truth.csv",
+        "manifest": f"{prefix}_cohort_manifest.json",
+    }
+
+
+# Backward-compatible PREV_01 constant used by the R5.11 test module.
+COHORT_OUTPUT_FILES = cohort_output_files("PREV_01")
+
+
 class ScenarioMaterializationError(ValueError):
-    """Raised when PREV_01 cannot be materialized safely."""
+    """Raised when one prevalence cohort cannot be materialized safely."""
 
 
 @dataclass(frozen=True)
@@ -124,6 +138,12 @@ def _load_scenario(
     )
     manifest = _load_json(manifest_path)
 
+    if scenario_id not in SUPPORTED_SCENARIOS:
+        _fail(
+            "R5.12 supports PREV_01 and PREV_03 only. "
+            f"Received: {scenario_id}"
+        )
+
     scenario = next(
         (
             item
@@ -136,10 +156,9 @@ def _load_scenario(
     if scenario is None:
         _fail(f"Unknown stress-test scenario: {scenario_id}")
 
-    if scenario_id != "PREV_01":
+    if scenario["scenario_type"] != "anomaly_prevalence":
         _fail(
-            "R5.11 implements only PREV_01. Other stress-test "
-            "scenarios remain manifest-only."
+            f"{scenario_id} must be an anomaly_prevalence scenario."
         )
 
     return manifest, scenario
@@ -155,13 +174,12 @@ def _materialization_contract(
         "exclude_benign_drift",
         "include_contextual_controls",
     }
-
     materialization = scenario.get("materialization", {})
     missing_keys = required_keys.difference(materialization)
 
     if missing_keys:
         _fail(
-            "PREV_01 materialization contract is missing: "
+            f"{scenario['id']} materialization contract is missing: "
             f"{sorted(missing_keys)}"
         )
 
@@ -195,7 +213,7 @@ def _delay_counts(
     }
 
 
-def _select_prev_01_lots(
+def _select_prevalence_lots(
     lots: pd.DataFrame,
     manifest: dict[str, Any],
     scenario: dict[str, Any],
@@ -220,6 +238,7 @@ def _select_prev_01_lots(
         )
 
     materialization = _materialization_contract(scenario)
+    scenario_id = str(scenario["id"])
     cohort_size = int(materialization["cohort_size"])
     anomalies_per_mechanism = int(
         materialization["anomalies_per_mechanism"]
@@ -243,38 +262,41 @@ def _select_prev_01_lots(
 
     if sum(target_delay_counts.values()) != cohort_size:
         _fail(
-            "PREV_01 target_label_delay_counts must sum to cohort_size."
+            f"{scenario_id} target_label_delay_counts must sum to "
+            "cohort_size."
         )
 
     if set(target_delay_counts) != set(allowed_delays):
         _fail(
-            "PREV_01 label-delay quotas must cover exactly 12h, 24h, "
-            "and 48h."
+            f"{scenario_id} label-delay quotas must cover exactly its "
+            "configured delays."
         )
 
     expected_anomaly_count = (
         len(included_mechanisms) * anomalies_per_mechanism
     )
-
     target_rate = float(
         scenario["target_synthetic_anomaly_rate"]
     )
 
-    if expected_anomaly_count / cohort_size != target_rate:
+    if abs(expected_anomaly_count / cohort_size - target_rate) > 1e-12:
         _fail(
-            "PREV_01 anomaly count and cohort size do not produce the "
-            "configured anomaly prevalence."
+            f"{scenario_id} anomaly count and cohort size do not produce "
+            "the configured prevalence."
         )
 
-    seed = _scenario_seed(manifest, scenario["id"])
+    seed = _scenario_seed(manifest, scenario_id)
     unseen_mask = _true_mask(lots["is_unseen_context"])
     anomaly_mask = _true_mask(lots["is_synthetic_anomaly"])
     benign_mask = _true_mask(lots["is_benign_drift"])
 
+    population_mask = ~unseen_mask
+
+    if bool(materialization["exclude_benign_drift"]):
+        population_mask &= ~benign_mask
+
     eligible_anomalies = lots.loc[
-        anomaly_mask
-        & ~unseen_mask
-        & ~benign_mask
+        population_mask & anomaly_mask
     ].copy()
 
     selected_anomaly_indices: list[int] = []
@@ -288,7 +310,7 @@ def _select_prev_01_lots(
 
         if len(mechanism_pool) < anomalies_per_mechanism:
             _fail(
-                f"PREV_01 needs {anomalies_per_mechanism} seen-context "
+                f"{scenario_id} needs {anomalies_per_mechanism} "
                 f"{mechanism_id} lots, but only "
                 f"{len(mechanism_pool)} are available."
             )
@@ -306,7 +328,7 @@ def _select_prev_01_lots(
 
     if len(selected_anomaly_indices) != expected_anomaly_count:
         _fail(
-            "PREV_01 did not select the expected number of anomaly lots."
+            f"{scenario_id} did not select the expected anomaly count."
         )
 
     selected_anomalies = lots.loc[
@@ -314,9 +336,7 @@ def _select_prev_01_lots(
     ].copy()
 
     normal_pool = lots.loc[
-        ~anomaly_mask
-        & ~unseen_mask
-        & ~benign_mask
+        population_mask & ~anomaly_mask
     ].copy()
 
     forced_control_indices: list[int] = []
@@ -335,7 +355,8 @@ def _select_prev_01_lots(
 
         if "" in contextual_pair_ids:
             _fail(
-                "Selected contextual anomalies are missing pair IDs."
+                f"{scenario_id} selected contextual anomalies without "
+                "pair IDs."
             )
 
         forced_controls = normal_pool.loc[
@@ -349,7 +370,7 @@ def _select_prev_01_lots(
             selected_contextual_anomalies
         ):
             _fail(
-                "PREV_01 must include one Recipe A control for every "
+                f"{scenario_id} must include one Recipe A control per "
                 "selected contextual anomaly."
             )
 
@@ -374,8 +395,7 @@ def _select_prev_01_lots(
 
         if required_normal_count < 0:
             _fail(
-                f"PREV_01 delay quota for {delay}h is overfilled by "
-                "selected anomalies or mandatory contextual controls."
+                f"{scenario_id} delay quota for {delay}h is overfilled."
             )
 
         delay_pool = normal_pool.loc[
@@ -388,8 +408,9 @@ def _select_prev_01_lots(
 
         if len(delay_pool) < required_normal_count:
             _fail(
-                f"PREV_01 needs {required_normal_count} normal lots at "
-                f"{delay}h, but only {len(delay_pool)} are available."
+                f"{scenario_id} needs {required_normal_count} normal "
+                f"lots at {delay}h, but only "
+                f"{len(delay_pool)} are available."
             )
 
         sampled_indices = delay_pool.sample(
@@ -402,7 +423,7 @@ def _select_prev_01_lots(
         cohort_size - expected_anomaly_count
     ):
         _fail(
-            "PREV_01 did not select the required number of normal lots."
+            f"{scenario_id} did not select the required normal count."
         )
 
     selected_indices = sorted(
@@ -412,8 +433,7 @@ def _select_prev_01_lots(
 
     if len(cohort_lots) != cohort_size:
         _fail(
-            "PREV_01 cohort size does not match its materialization "
-            "contract."
+            f"{scenario_id} cohort size does not match its contract."
         )
 
     cohort_lots = cohort_lots.sort_values(
@@ -466,41 +486,36 @@ def _filter_evidence_tables(
             _evidence_tokens(evidence_ids)
         )
 
-    cohort_tool_events = source_tables["tool_events"].loc[
-        source_tables["tool_events"]["evidence_id"]
-        .astype(str)
-        .isin(referenced_evidence_ids)
-    ].copy()
+    evidence_tables = {
+        "tool_events": source_tables["tool_events"],
+        "maintenance": source_tables["maintenance"],
+        "process_changes": source_tables["process_changes"],
+    }
 
-    cohort_maintenance = source_tables["maintenance"].loc[
-        source_tables["maintenance"]["evidence_id"]
-        .astype(str)
-        .isin(referenced_evidence_ids)
-    ].copy()
-
-    cohort_process_changes = source_tables["process_changes"].loc[
-        source_tables["process_changes"]["evidence_id"]
-        .astype(str)
-        .isin(referenced_evidence_ids)
-    ].copy()
-
-    return {
+    cohort_tables: dict[str, pd.DataFrame] = {
         "lots": cohort_lots,
-        "tool_events": cohort_tool_events,
-        "maintenance": cohort_maintenance,
-        "process_changes": cohort_process_changes,
         "rca_ground_truth": cohort_rca,
     }
+
+    for table_id, frame in evidence_tables.items():
+        cohort_tables[table_id] = frame.loc[
+            frame["evidence_id"]
+            .astype(str)
+            .isin(referenced_evidence_ids)
+        ].copy()
+
+    return cohort_tables
 
 
 def _write_cohort_tables(
     cohort_tables: dict[str, pd.DataFrame],
     output_dir: Path,
+    output_files: dict[str, str],
 ) -> dict[str, str]:
     output_dir.mkdir(parents=True, exist_ok=True)
     output_hashes: dict[str, str] = {}
 
-    for table_id, filename in COHORT_OUTPUT_FILES.items():
+    for table_id, filename in output_files.items():
         if table_id == "manifest":
             continue
 
@@ -553,16 +568,18 @@ def _validate_cohort_evidence(
             )
 
 
-def validate_prev_01_cohort(
+def validate_prevalence_cohort(
     output_dir: Path,
     scenario: dict[str, Any],
 ) -> CohortSummary:
-    """Validate a written PREV_01 cohort and its evidence closure."""
+    """Validate one written PREV_01 or PREV_03 cohort."""
     output_dir = output_dir.resolve()
+    scenario_id = str(scenario["id"])
+    output_files = cohort_output_files(scenario_id)
     materialization = _materialization_contract(scenario)
     required_paths = {
         table_id: output_dir / filename
-        for table_id, filename in COHORT_OUTPUT_FILES.items()
+        for table_id, filename in output_files.items()
     }
 
     missing_paths = [
@@ -573,7 +590,7 @@ def validate_prev_01_cohort(
 
     if missing_paths:
         _fail(
-            "PREV_01 cohort outputs are missing: "
+            f"{scenario_id} cohort outputs are missing: "
             f"{[str(path) for path in missing_paths]}"
         )
 
@@ -606,14 +623,18 @@ def validate_prev_01_cohort(
 
     if len(lots) != cohort_size:
         _fail(
-            f"PREV_01 cohort size must be {cohort_size}, got {len(lots)}."
+            f"{scenario_id} cohort size must be {cohort_size}, "
+            f"got {len(lots)}."
         )
 
     if _true_mask(lots["is_unseen_context"]).any():
-        _fail("PREV_01 must contain seen-context lots only.")
+        _fail(f"{scenario_id} must contain seen-context lots only.")
 
-    if _true_mask(lots["is_benign_drift"]).any():
-        _fail("PREV_01 must exclude benign drift lots.")
+    if (
+        bool(materialization["exclude_benign_drift"])
+        and _true_mask(lots["is_benign_drift"]).any()
+    ):
+        _fail(f"{scenario_id} must exclude benign drift lots.")
 
     anomaly_mask = _true_mask(lots["is_synthetic_anomaly"])
     anomaly_lots = lots.loc[anomaly_mask].copy()
@@ -623,17 +644,19 @@ def validate_prev_01_cohort(
 
     if len(anomaly_lots) != expected_anomaly_count:
         _fail(
-            "PREV_01 synthetic anomaly count does not match the "
-            "materialization contract."
+            f"{scenario_id} synthetic anomaly count does not match "
+            "its materialization contract."
         )
 
     achieved_rate = len(anomaly_lots) / len(lots)
 
-    if achieved_rate != float(
-        scenario["target_synthetic_anomaly_rate"]
-    ):
+    if abs(
+        achieved_rate
+        - float(scenario["target_synthetic_anomaly_rate"])
+    ) > 1e-12:
         _fail(
-            "PREV_01 achieved anomaly rate does not match the manifest."
+            f"{scenario_id} achieved anomaly rate does not match "
+            "the manifest."
         )
 
     mechanism_counts = {
@@ -649,8 +672,8 @@ def validate_prev_01_cohort(
         anomalies_per_mechanism
     }:
         _fail(
-            "PREV_01 must retain the configured anomaly count for every "
-            "included mechanism."
+            f"{scenario_id} must retain the configured anomaly count "
+            "for every mechanism."
         )
 
     observed_delay_counts = _delay_counts(
@@ -660,43 +683,47 @@ def validate_prev_01_cohort(
 
     if observed_delay_counts != expected_delay_counts:
         _fail(
-            "PREV_01 label-delay distribution does not match the "
-            "manifest quotas."
+            f"{scenario_id} label-delay distribution does not match "
+            "the manifest quotas."
         )
 
-    contextual_anomalies = anomaly_lots.loc[
-        anomaly_lots["anomaly_mechanism"].eq(
-            "contextual_anomaly"
+    if bool(materialization["include_contextual_controls"]):
+        contextual_anomalies = anomaly_lots.loc[
+            anomaly_lots["anomaly_mechanism"].eq(
+                "contextual_anomaly"
+            )
+        ]
+        contextual_pair_ids = set(
+            contextual_anomalies["contextual_pair_id"].astype(str)
         )
-    ]
-    contextual_pair_ids = set(
-        contextual_anomalies["contextual_pair_id"].astype(str)
-    )
-    contextual_controls = lots.loc[
-        _true_mask(lots["is_contextual_control"])
-        & lots["contextual_pair_id"]
-        .astype(str)
-        .isin(contextual_pair_ids)
-    ]
+        contextual_controls = lots.loc[
+            _true_mask(lots["is_contextual_control"])
+            & lots["contextual_pair_id"]
+            .astype(str)
+            .isin(contextual_pair_ids)
+        ]
 
-    if len(contextual_controls) != len(contextual_anomalies):
-        _fail(
-            "PREV_01 must include one contextual Recipe A control per "
-            "selected contextual anomaly."
-        )
+        if len(contextual_controls) != len(contextual_anomalies):
+            _fail(
+                f"{scenario_id} must include one Recipe A control per "
+                "selected contextual anomaly."
+            )
 
     anomaly_lot_ids = set(anomaly_lots["lot_id"].astype(str))
     rca_ground_truth = cohort_tables["rca_ground_truth"]
 
     if set(rca_ground_truth["lot_id"].astype(str)) != anomaly_lot_ids:
         _fail(
-            "PREV_01 RCA ground truth must cover exactly its anomaly lots."
+            f"{scenario_id} RCA ground truth must cover exactly its "
+            "anomaly lots."
         )
 
     _validate_cohort_evidence(cohort_tables)
 
-    if generated_manifest["scenario_id"] != "PREV_01":
-        _fail("Generated cohort manifest must identify PREV_01.")
+    if generated_manifest["scenario_id"] != scenario_id:
+        _fail(
+            f"Generated cohort manifest must identify {scenario_id}."
+        )
 
     if generated_manifest["cohort_size"] != cohort_size:
         _fail(
@@ -711,7 +738,7 @@ def validate_prev_01_cohort(
         )
 
     return CohortSummary(
-        scenario_id="PREV_01",
+        scenario_id=scenario_id,
         cohort_size=cohort_size,
         synthetic_anomaly_count=expected_anomaly_count,
         achieved_anomaly_rate=achieved_rate,
@@ -726,7 +753,7 @@ def materialize_scenario(
     scenario_id: str = "PREV_01",
     output_dir: Path | None = None,
 ) -> CohortSummary:
-    """Materialize, write, and validate the PREV_01 cohort."""
+    """Materialize, write, and validate one supported prevalence cohort."""
     repo_root = repo_root.resolve()
     manifest, scenario = _load_scenario(
         repo_root=repo_root,
@@ -739,7 +766,7 @@ def materialize_scenario(
         mechanism_counts,
         label_delay_counts,
         scenario_seed,
-    ) = _select_prev_01_lots(
+    ) = _select_prevalence_lots(
         lots=source_tables["lots"],
         manifest=manifest,
         scenario=scenario,
@@ -761,11 +788,16 @@ def materialize_scenario(
         )
 
     output_dir = output_dir.resolve()
+    output_files = cohort_output_files(scenario_id)
     output_hashes = _write_cohort_tables(
         cohort_tables=cohort_tables,
         output_dir=output_dir,
+        output_files=output_files,
     )
 
+    synthetic_anomaly_count = int(
+        _true_mask(cohort_lots["is_synthetic_anomaly"]).sum()
+    )
     generated_manifest = {
         "schema_version": "1.0",
         "scenario_id": scenario_id,
@@ -775,14 +807,9 @@ def materialize_scenario(
         "source_lots": BASE_OUTPUT_FILES["lots"],
         "random_seed": scenario_seed,
         "cohort_size": len(cohort_lots),
-        "synthetic_anomaly_count": int(
-            _true_mask(cohort_lots["is_synthetic_anomaly"]).sum()
-        ),
+        "synthetic_anomaly_count": synthetic_anomaly_count,
         "achieved_synthetic_anomaly_rate": (
-            int(_true_mask(
-                cohort_lots["is_synthetic_anomaly"]
-            ).sum())
-            / len(cohort_lots)
+            synthetic_anomaly_count / len(cohort_lots)
         ),
         "mechanism_counts": mechanism_counts,
         "label_delay_counts": label_delay_counts,
@@ -792,7 +819,7 @@ def materialize_scenario(
         ],
         "output_sha256": output_hashes,
     }
-    manifest_path = output_dir / COHORT_OUTPUT_FILES["manifest"]
+    manifest_path = output_dir / output_files["manifest"]
     manifest_path.write_text(
         json.dumps(
             generated_manifest,
@@ -803,7 +830,7 @@ def materialize_scenario(
         encoding="utf-8",
     )
 
-    return validate_prev_01_cohort(
+    return validate_prevalence_cohort(
         output_dir=output_dir,
         scenario=scenario,
     )
@@ -813,13 +840,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Materialize one reproducible WaferWatch Synthetic Data V2 "
-            "stress-test cohort."
+            "prevalence cohort."
         )
     )
     parser.add_argument(
         "--scenario-id",
         default="PREV_01",
-        help="Scenario ID. R5.11 supports PREV_01 only.",
+        choices=sorted(SUPPORTED_SCENARIOS),
+        help="Supported scenario ID.",
     )
     parser.add_argument(
         "--output-dir",
@@ -827,7 +855,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Optional output directory. Defaults to "
-            "data/synthetic/v2/scenarios/PREV_01."
+            "data/synthetic/v2/scenarios/<scenario-id>."
         ),
     )
     return parser
