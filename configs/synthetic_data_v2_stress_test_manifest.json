@@ -42,32 +42,43 @@
     ]
   },
   "scenarios": [
-    {
-      "id": "PREV_01",
-      "scenario_type": "anomaly_prevalence",
-      "description": "Rare 1% synthetic anomaly prevalence under seen manufacturing context.",
-      "evaluation_selector": "is_unseen_context == 0",
-      "target_synthetic_anomaly_rate": 0.01,
-      "included_anomaly_mechanisms": [
-        "abrupt_mean_shift",
-        "gradual_degradation",
-        "variance_instability",
-        "sensor_fault",
-        "contextual_anomaly"
-      ],
-      "label_delay_hours": [
-        12,
-        24,
-        48
-      ],
-      "sampling_method": "stratified_resample_without_replacement",
-      "primary_metrics": [
-        "pr_auc",
-        "recall_at_false_alarm_budget",
-        "false_alarms_per_100_lots",
-        "expected_operational_cost"
-      ]
-    },
+            {
+        "id": "PREV_01",
+        "scenario_type": "anomaly_prevalence",
+        "description": "Rare 1% synthetic anomaly prevalence under seen manufacturing context.",
+        "evaluation_selector": "is_unseen_context == 0",
+        "target_synthetic_anomaly_rate": 0.01,
+        "included_anomaly_mechanisms": [
+            "abrupt_mean_shift",
+            "gradual_degradation",
+            "variance_instability",
+            "sensor_fault",
+            "contextual_anomaly"
+        ],
+        "label_delay_hours": [
+            12,
+            24,
+            48
+        ],
+        "sampling_method": "stratified_resample_without_replacement",
+        "primary_metrics": [
+            "pr_auc",
+            "recall_at_false_alarm_budget",
+            "false_alarms_per_100_lots",
+            "expected_operational_cost"
+        ],
+        "materialization": {
+            "cohort_size": 1000,
+            "anomalies_per_mechanism": 2,
+            "target_label_delay_counts": {
+            "12": 334,
+            "24": 333,
+            "48": 333
+            },
+            "exclude_benign_drift": true,
+            "include_contextual_controls": true
+        }
+        },
     {
       "id": "PREV_03",
       "scenario_type": "anomaly_prevalence",
