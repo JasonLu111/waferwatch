@@ -26,7 +26,8 @@ EXPECTED_ROOT_CAUSES = {
         "synthetic_lot",
     },
     "RC_PROCESS_VARIABILITY": {
-        "synthetic_lot",
+    "tool_event",
+    "synthetic_lot",
     },
     "RC_SENSOR_HARDWARE": {
         "tool_event",

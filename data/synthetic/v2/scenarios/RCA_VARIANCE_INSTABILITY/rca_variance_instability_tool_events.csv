@@ -1,0 +1,2 @@
+event_id,tool_id,chamber_id,alarm_code,event_type,start_time,end_time,severity,related_lot_id,evidence_id
+EVT_VARIANCE_001,TOOL_07,TOOL_07_CH_01,ALARM_PROCESS_VARIABILITY,process_variability_warning,2026-01-05 13:00:00,2026-01-05 13:30:00,medium,SYNV2_00027,EVID_VARIANCE_EVENT_001

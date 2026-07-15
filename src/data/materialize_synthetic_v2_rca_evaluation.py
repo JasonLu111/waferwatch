@@ -1,8 +1,9 @@
 """Materialize supported Synthetic Data V2 RCA evaluation cohorts.
 
-This module currently supports exactly the first two manifest RCA scenarios:
-``RCA_ABRUPT_MEAN_SHIFT`` and ``RCA_GRADUAL_DEGRADATION``.  Each cohort is a
-deterministic, evidence-complete subset of the core Synthetic Data V2 outputs.
+This module currently supports exactly the first three manifest RCA scenarios:
+``RCA_ABRUPT_MEAN_SHIFT``, ``RCA_GRADUAL_DEGRADATION``, and
+``RCA_VARIANCE_INSTABILITY``.  Each cohort is a deterministic,
+evidence-complete subset of the core Synthetic Data V2 outputs.
 """
 
 from __future__ import annotations
@@ -41,6 +42,16 @@ SCENARIO_SPECS: dict[str, dict[str, str]] = {
         "source_table": "synthetic_maintenance",
         "output_key": "maintenance",
     },
+    "RCA_VARIANCE_INSTABILITY": {
+        "root_cause_id": "RC_PROCESS_VARIABILITY",
+        "anomaly_mechanism": "variance_instability",
+        "context_evidence_type": "tool_event",
+        "source_path_key": "source_tool_events_path",
+        "expected_count_key": "expected_tool_event_count",
+        "required_evidence_id_key": "required_tool_event_evidence_id",
+        "source_table": "synthetic_tool_events",
+        "output_key": "tool_events",
+    },
 }
 
 SCENARIO_OUTPUT_FILES: dict[str, dict[str, str]] = {
@@ -58,6 +69,13 @@ SCENARIO_OUTPUT_FILES: dict[str, dict[str, str]] = {
         "evidence_bundle": "rca_gradual_degradation_evidence_bundle.csv",
         "manifest": "rca_gradual_degradation_cohort_manifest.json",
     },
+    "RCA_VARIANCE_INSTABILITY": {
+        "lots": "rca_variance_instability_lots.csv",
+        "ground_truth": "rca_variance_instability_ground_truth.csv",
+        "tool_events": "rca_variance_instability_tool_events.csv",
+        "evidence_bundle": "rca_variance_instability_evidence_bundle.csv",
+        "manifest": "rca_variance_instability_cohort_manifest.json",
+    },
 }
 
 RCA_ABRUPT_MEAN_SHIFT_OUTPUT_FILES = SCENARIO_OUTPUT_FILES[
@@ -65,6 +83,9 @@ RCA_ABRUPT_MEAN_SHIFT_OUTPUT_FILES = SCENARIO_OUTPUT_FILES[
 ]
 RCA_GRADUAL_DEGRADATION_OUTPUT_FILES = SCENARIO_OUTPUT_FILES[
     "RCA_GRADUAL_DEGRADATION"
+]
+RCA_VARIANCE_INSTABILITY_OUTPUT_FILES = SCENARIO_OUTPUT_FILES[
+    "RCA_VARIANCE_INSTABILITY"
 ]
 
 EVIDENCE_BUNDLE_COLUMNS = [
@@ -509,7 +530,9 @@ def _context_evidence_record(
         source_record_id = _first_present(
             row, ["event_id", "tool_event_id", "evidence_id"]
         )
-        event_time = _first_present(row, ["event_time", "occurred_at"])
+        event_time = _first_present(
+            row, ["event_time", "occurred_at", "start_time", "end_time"]
+        )
         lot_id = _first_present(row, ["related_lot_id", "lot_id"])
 
     return {
@@ -600,7 +623,8 @@ def materialize_rca_evaluation(
     if scenario_id not in SCENARIO_SPECS:
         _fail(
             "This checkpoint supports only "
-            "RCA_ABRUPT_MEAN_SHIFT and RCA_GRADUAL_DEGRADATION; "
+            "RCA_ABRUPT_MEAN_SHIFT, RCA_GRADUAL_DEGRADATION, and "
+            "RCA_VARIANCE_INSTABILITY; "
             f"received {scenario_id}."
         )
 
@@ -752,6 +776,18 @@ def materialize_rca_gradual_degradation(
     return materialize_rca_evaluation(
         repo_root=repo_root,
         scenario_id="RCA_GRADUAL_DEGRADATION",
+        output_dir=output_dir,
+    )
+
+
+def materialize_rca_variance_instability(
+    repo_root: Path,
+    output_dir: Path | None = None,
+) -> RcaEvaluationSummary:
+    """Materialize the variance-instability RCA evaluation cohort."""
+    return materialize_rca_evaluation(
+        repo_root=repo_root,
+        scenario_id="RCA_VARIANCE_INSTABILITY",
         output_dir=output_dir,
     )
 

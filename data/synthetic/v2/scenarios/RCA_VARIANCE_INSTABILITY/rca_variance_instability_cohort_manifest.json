@@ -1,0 +1,72 @@
+{
+  "cohort": {
+    "expected_abstention": false,
+    "expected_top_k": [
+      1,
+      3
+    ],
+    "ground_truth_count": 47,
+    "lot_count": 47,
+    "root_cause_id": "RC_PROCESS_VARIABILITY",
+    "synthetic_anomaly_count": 47
+  },
+  "context_evidence": {
+    "evidence_type": "tool_event",
+    "required_evidence_id": "EVID_VARIANCE_EVENT_001",
+    "row_count": 1,
+    "source_table": "synthetic_tool_events"
+  },
+  "disclaimer": "Research-only RCA evaluation cohort derived from Synthetic Data V2. It contains synthetic variance-instability anomalies and grounded process-variability warning evidence only; it is not data from a real semiconductor fab.",
+  "evidence_bundle": {
+    "evidence_id_count": 48,
+    "maintenance_count": 0,
+    "required_evidence_types": [
+      "tool_event",
+      "synthetic_lot"
+    ],
+    "synthetic_lot_count": 47,
+    "tool_event_count": 1
+  },
+  "scenario": {
+    "description": "Evaluate RCA for increasing variance without systematic mean change.",
+    "expected_abstention": false,
+    "expected_top_k": [
+      1,
+      3
+    ],
+    "id": "RCA_VARIANCE_INSTABILITY",
+    "materialization": {
+      "disclaimer": "Research-only RCA evaluation cohort derived from Synthetic Data V2. It contains synthetic variance-instability anomalies and grounded process-variability warning evidence only; it is not data from a real semiconductor fab.",
+      "expected_evidence_bundle_count": 48,
+      "expected_ground_truth_count": 47,
+      "expected_lot_count": 47,
+      "expected_tool_event_count": 1,
+      "mode": "rca_evaluation_cohort",
+      "preserve_core_v2_outputs": true,
+      "required_tool_event_evidence_id": "EVID_VARIANCE_EVENT_001",
+      "source_lots_path": "data/synthetic/v2/synthetic_secom_v2.csv",
+      "source_rca_ground_truth_path": "data/synthetic/v2/synthetic_rca_ground_truth.csv",
+      "source_tool_events_path": "data/synthetic/v2/synthetic_tool_events.csv"
+    },
+    "required_evidence_types": [
+      "tool_event",
+      "synthetic_lot"
+    ],
+    "root_cause_id": "RC_PROCESS_VARIABILITY",
+    "scenario_type": "root_cause"
+  },
+  "source_inputs": [
+    {
+      "path": "data/synthetic/v2/synthetic_secom_v2.csv",
+      "sha256": "1d55897270491e523e217930f2ecb8f1fcafb299d1228a67aebe70fbbf90ca1f"
+    },
+    {
+      "path": "data/synthetic/v2/synthetic_tool_events.csv",
+      "sha256": "5e91b54fdaeb093ce7fbb8b92ae7ab3865562e4e27c504c7017195ff7ea06e1b"
+    },
+    {
+      "path": "data/synthetic/v2/synthetic_rca_ground_truth.csv",
+      "sha256": "315c209095c0f6018eca416dc652d9c0eacf6679a631e18efc3e641f496898a5"
+    }
+  ]
+}
