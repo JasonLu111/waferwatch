@@ -1,0 +1,2 @@
+event_id,tool_id,chamber_id,alarm_code,event_type,start_time,end_time,severity,related_lot_id,evidence_id
+EVT_CONTEXTUAL_001,TOOL_04,TOOL_04_CH_01,ALARM_RECIPE_CONTEXT_MISMATCH,recipe_context_alarm,2026-04-29 05:00:00,2026-04-29 06:00:00,high,SYNV2_00709,EVID_CONTEXT_EVENT_001

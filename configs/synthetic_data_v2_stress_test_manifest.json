@@ -568,7 +568,21 @@
         1,
         3
       ],
-      "expected_abstention": false
+      "expected_abstention": false,
+      "materialization": {
+      "mode": "rca_evaluation_cohort",
+      "source_lots_path": "data/synthetic/v2/synthetic_secom_v2.csv",
+      "source_tool_events_path": "data/synthetic/v2/synthetic_tool_events.csv",
+      "source_rca_ground_truth_path": "data/synthetic/v2/synthetic_rca_ground_truth.csv",
+      "expected_lot_count": 47,
+      "expected_ground_truth_count": 47,
+      "expected_tool_event_count": 1,
+      "expected_recipe_context_count": 94,
+      "expected_evidence_bundle_count": 142,
+      "required_tool_event_evidence_id": "EVID_CONTEXT_EVENT_001",
+      "preserve_core_v2_outputs": true,
+      "disclaimer": "Research-only RCA evaluation cohort derived from Synthetic Data V2. It contains synthetic contextual anomalies, paired normal recipe-context controls, and grounded tool-event evidence only; it is not data from a real semiconductor fab."
+    }
     }
   ]
 }
