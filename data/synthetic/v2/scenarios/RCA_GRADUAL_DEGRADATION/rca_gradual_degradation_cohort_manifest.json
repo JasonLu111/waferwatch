@@ -1,0 +1,72 @@
+{
+  "cohort": {
+    "expected_abstention": false,
+    "expected_top_k": [
+      1,
+      3
+    ],
+    "ground_truth_count": 47,
+    "lot_count": 47,
+    "root_cause_id": "RC_COMPONENT_WEAR",
+    "synthetic_anomaly_count": 47
+  },
+  "context_evidence": {
+    "evidence_type": "maintenance",
+    "required_evidence_id": "EVID_MAINT_DELAY_GRADUAL_001",
+    "row_count": 1,
+    "source_table": "synthetic_maintenance"
+  },
+  "disclaimer": "Research-only RCA evaluation cohort derived from Synthetic Data V2. It contains synthetic gradual-degradation anomalies and grounded delayed-maintenance evidence only; it is not data from a real semiconductor fab.",
+  "evidence_bundle": {
+    "evidence_id_count": 48,
+    "maintenance_count": 1,
+    "required_evidence_types": [
+      "maintenance",
+      "synthetic_lot"
+    ],
+    "synthetic_lot_count": 47,
+    "tool_event_count": 0
+  },
+  "scenario": {
+    "description": "Evaluate RCA for progressive degradation with delayed maintenance.",
+    "expected_abstention": false,
+    "expected_top_k": [
+      1,
+      3
+    ],
+    "id": "RCA_GRADUAL_DEGRADATION",
+    "materialization": {
+      "disclaimer": "Research-only RCA evaluation cohort derived from Synthetic Data V2. It contains synthetic gradual-degradation anomalies and grounded delayed-maintenance evidence only; it is not data from a real semiconductor fab.",
+      "expected_evidence_bundle_count": 48,
+      "expected_ground_truth_count": 47,
+      "expected_lot_count": 47,
+      "expected_maintenance_count": 1,
+      "mode": "rca_evaluation_cohort",
+      "preserve_core_v2_outputs": true,
+      "required_maintenance_evidence_id": "EVID_MAINT_DELAY_GRADUAL_001",
+      "source_lots_path": "data/synthetic/v2/synthetic_secom_v2.csv",
+      "source_maintenance_path": "data/synthetic/v2/synthetic_maintenance.csv",
+      "source_rca_ground_truth_path": "data/synthetic/v2/synthetic_rca_ground_truth.csv"
+    },
+    "required_evidence_types": [
+      "maintenance",
+      "synthetic_lot"
+    ],
+    "root_cause_id": "RC_COMPONENT_WEAR",
+    "scenario_type": "root_cause"
+  },
+  "source_inputs": [
+    {
+      "path": "data/synthetic/v2/synthetic_secom_v2.csv",
+      "sha256": "1d55897270491e523e217930f2ecb8f1fcafb299d1228a67aebe70fbbf90ca1f"
+    },
+    {
+      "path": "data/synthetic/v2/synthetic_maintenance.csv",
+      "sha256": "fd85dcb5668b2a461e45d736a87abdcb511bfea379766eb9c38ace90b2c655d0"
+    },
+    {
+      "path": "data/synthetic/v2/synthetic_rca_ground_truth.csv",
+      "sha256": "315c209095c0f6018eca416dc652d9c0eacf6679a631e18efc3e641f496898a5"
+    }
+  ]
+}

@@ -1,9 +1,8 @@
-"""Materialize the first Synthetic Data V2 RCA evaluation cohort.
+"""Materialize supported Synthetic Data V2 RCA evaluation cohorts.
 
-This checkpoint deliberately supports only ``RCA_ABRUPT_MEAN_SHIFT``.  The
-cohort is a deterministic, evidence-complete subset of the core V2 outputs:
-47 abrupt-shift lots, their 47 RCA ground-truth cases, and the one shared tool
-alarm plus lot-level synthetic evidence cited by those cases.
+This module currently supports exactly the first two manifest RCA scenarios:
+``RCA_ABRUPT_MEAN_SHIFT`` and ``RCA_GRADUAL_DEGRADATION``.  Each cohort is a
+deterministic, evidence-complete subset of the core Synthetic Data V2 outputs.
 """
 
 from __future__ import annotations
@@ -12,7 +11,6 @@ import argparse
 import hashlib
 import json
 import re
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -22,17 +20,51 @@ import pandas as pd
 
 DEFAULT_SCENARIO_ID = "RCA_ABRUPT_MEAN_SHIFT"
 
+SCENARIO_SPECS: dict[str, dict[str, str]] = {
+    "RCA_ABRUPT_MEAN_SHIFT": {
+        "root_cause_id": "RC_PRESSURE_INSTABILITY",
+        "anomaly_mechanism": "abrupt_mean_shift",
+        "context_evidence_type": "tool_event",
+        "source_path_key": "source_tool_events_path",
+        "expected_count_key": "expected_tool_event_count",
+        "required_evidence_id_key": "required_tool_event_evidence_id",
+        "source_table": "synthetic_tool_events",
+        "output_key": "tool_events",
+    },
+    "RCA_GRADUAL_DEGRADATION": {
+        "root_cause_id": "RC_COMPONENT_WEAR",
+        "anomaly_mechanism": "gradual_degradation",
+        "context_evidence_type": "maintenance",
+        "source_path_key": "source_maintenance_path",
+        "expected_count_key": "expected_maintenance_count",
+        "required_evidence_id_key": "required_maintenance_evidence_id",
+        "source_table": "synthetic_maintenance",
+        "output_key": "maintenance",
+    },
+}
+
 SCENARIO_OUTPUT_FILES: dict[str, dict[str, str]] = {
-    DEFAULT_SCENARIO_ID: {
+    "RCA_ABRUPT_MEAN_SHIFT": {
         "lots": "rca_abrupt_mean_shift_lots.csv",
         "ground_truth": "rca_abrupt_mean_shift_ground_truth.csv",
         "tool_events": "rca_abrupt_mean_shift_tool_events.csv",
         "evidence_bundle": "rca_abrupt_mean_shift_evidence_bundle.csv",
         "manifest": "rca_abrupt_mean_shift_cohort_manifest.json",
-    }
+    },
+    "RCA_GRADUAL_DEGRADATION": {
+        "lots": "rca_gradual_degradation_lots.csv",
+        "ground_truth": "rca_gradual_degradation_ground_truth.csv",
+        "maintenance": "rca_gradual_degradation_maintenance.csv",
+        "evidence_bundle": "rca_gradual_degradation_evidence_bundle.csv",
+        "manifest": "rca_gradual_degradation_cohort_manifest.json",
+    },
 }
+
 RCA_ABRUPT_MEAN_SHIFT_OUTPUT_FILES = SCENARIO_OUTPUT_FILES[
-    DEFAULT_SCENARIO_ID
+    "RCA_ABRUPT_MEAN_SHIFT"
+]
+RCA_GRADUAL_DEGRADATION_OUTPUT_FILES = SCENARIO_OUTPUT_FILES[
+    "RCA_GRADUAL_DEGRADATION"
 ]
 
 EVIDENCE_BUNDLE_COLUMNS = [
@@ -52,7 +84,7 @@ EVIDENCE_BUNDLE_COLUMNS = [
 
 
 class RcaEvaluationMaterializationError(RuntimeError):
-    """Raised when the RCA cohort contract cannot be materialized safely."""
+    """Raised when an RCA cohort contract cannot be materialized safely."""
 
 
 @dataclass(frozen=True)
@@ -62,6 +94,9 @@ class RcaEvaluationSummary:
     cohort_lot_count: int
     ground_truth_count: int
     tool_event_count: int
+    maintenance_count: int
+    context_evidence_type: str
+    context_evidence_count: int
     evidence_bundle_count: int
     output_dir: Path
 
@@ -166,52 +201,98 @@ def _scenario_from_manifest(
     return matches[0]
 
 
-def _materialization_contract(scenario: dict[str, Any]) -> dict[str, Any]:
-    expected_root_cause_id = "RC_PRESSURE_INSTABILITY"
+def _materialization_contract(
+    scenario_id: str,
+    scenario: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    spec = SCENARIO_SPECS.get(scenario_id)
+    if spec is None:
+        _fail(f"Unsupported RCA scenario: {scenario_id}.")
+
+    context_evidence_type = spec["context_evidence_type"]
     if scenario.get("scenario_type") != "root_cause":
-        _fail("RCA_ABRUPT_MEAN_SHIFT must have scenario_type root_cause.")
-    if scenario.get("root_cause_id") != expected_root_cause_id:
+        _fail(f"{scenario_id} must have scenario_type root_cause.")
+    if scenario.get("root_cause_id") != spec["root_cause_id"]:
         _fail(
-            "RCA_ABRUPT_MEAN_SHIFT must target "
-            f"{expected_root_cause_id}."
+            f"{scenario_id} must target {spec['root_cause_id']}."
         )
     if set(scenario.get("required_evidence_types", [])) != {
-        "tool_event",
+        context_evidence_type,
         "synthetic_lot",
     }:
         _fail(
-            "RCA_ABRUPT_MEAN_SHIFT must require tool_event and "
+            f"{scenario_id} must require {context_evidence_type} and "
             "synthetic_lot evidence."
         )
     if tuple(scenario.get("expected_top_k", [])) != (1, 3):
-        _fail("RCA_ABRUPT_MEAN_SHIFT must declare expected_top_k [1, 3].")
+        _fail(f"{scenario_id} must declare expected_top_k [1, 3].")
     if scenario.get("expected_abstention") is not False:
-        _fail("RCA_ABRUPT_MEAN_SHIFT must not allow abstention.")
+        _fail(f"{scenario_id} must not allow abstention.")
 
-    contract = scenario.get("materialization")
-    if not isinstance(contract, dict):
+    raw_contract = scenario.get("materialization")
+    if raw_contract is not None and not isinstance(raw_contract, dict):
+        _fail(f"{scenario_id} materialization must be a JSON object.")
+
+    # R5.22 preceded per-scenario materialization metadata.  Keep its public
+    # abrupt cohort function and its compact fixture contract compatible while
+    # requiring explicit metadata for new RCA checkpoints.
+    if scenario_id != "RCA_ABRUPT_MEAN_SHIFT" and not isinstance(
+        raw_contract, dict
+    ):
         _fail(
-            "RCA_ABRUPT_MEAN_SHIFT requires a materialization object in "
-            "the stress-test manifest."
+            f"{scenario_id} requires a materialization object in the "
+            "stress-test manifest."
         )
+
+    default_source_path = {
+        "tool_event": "data/synthetic/v2/synthetic_tool_events.csv",
+        "maintenance": "data/synthetic/v2/synthetic_maintenance.csv",
+    }[context_evidence_type]
+    contract: dict[str, Any] = {
+        "mode": "rca_evaluation_cohort",
+        "source_lots_path": "data/synthetic/v2/synthetic_secom_v2.csv",
+        "source_rca_ground_truth_path": (
+            "data/synthetic/v2/synthetic_rca_ground_truth.csv"
+        ),
+        spec["source_path_key"]: default_source_path,
+        "preserve_core_v2_outputs": True,
+        "disclaimer": (
+            "Research-only Synthetic Data V2 RCA evaluation cohort. "
+            "It is not data from a real semiconductor fab."
+        ),
+    }
+    if isinstance(raw_contract, dict):
+        contract.update(raw_contract)
 
     required_fields = [
         "mode",
         "source_lots_path",
-        "source_tool_events_path",
         "source_rca_ground_truth_path",
+        spec["source_path_key"],
         "expected_lot_count",
         "expected_ground_truth_count",
-        "expected_tool_event_count",
+        spec["expected_count_key"],
         "expected_evidence_bundle_count",
-        "required_tool_event_evidence_id",
+        spec["required_evidence_id_key"],
         "preserve_core_v2_outputs",
         "disclaimer",
     ]
+    # Only new scenarios must declare a fully explicit materialization
+    # contract.  The R5.22 abrupt scenario deliberately retains legacy
+    # fixture compatibility and derives any omitted count from its source.
+    if scenario_id == "RCA_ABRUPT_MEAN_SHIFT":
+        required_fields = [
+            "mode",
+            "source_lots_path",
+            "source_rca_ground_truth_path",
+            spec["source_path_key"],
+            "preserve_core_v2_outputs",
+            "disclaimer",
+        ]
     missing = [field for field in required_fields if field not in contract]
     if missing:
         _fail(
-            "RCA_ABRUPT_MEAN_SHIFT materialization is missing fields: "
+            f"{scenario_id} materialization is missing fields: "
             f"{', '.join(missing)}."
         )
     if contract["mode"] != "rca_evaluation_cohort":
@@ -220,7 +301,7 @@ def _materialization_contract(scenario: dict[str, Any]) -> dict[str, Any]:
         _fail("RCA materialization must preserve core V2 outputs.")
     if not _as_text(contract["disclaimer"]):
         _fail("RCA materialization must include a research-only disclaimer.")
-    return contract
+    return contract, spec
 
 
 def _first_present(row: pd.Series, columns: list[str]) -> str:
@@ -238,17 +319,25 @@ def _json_payload(row: pd.Series, columns: list[str]) -> str:
         for column in columns
         if column in row.index
     }
-    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
 
 def _validate_and_select_tables(
     lots: pd.DataFrame,
-    tool_events: pd.DataFrame,
+    context_evidence: pd.DataFrame,
     ground_truth: pd.DataFrame,
     scenario: dict[str, Any],
     contract: dict[str, Any],
+    spec: dict[str, str],
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, set[str]]:
+    scenario_id = _as_text(scenario["id"])
     root_cause_id = _as_text(scenario["root_cause_id"])
+    context_type = spec["context_evidence_type"]
     _require_columns(
         lots,
         [
@@ -275,32 +364,39 @@ def _validate_and_select_tables(
         ],
         "Synthetic V2 RCA ground truth",
     )
-    _require_columns(tool_events, ["evidence_id"], "Synthetic V2 tool events")
+    _require_columns(
+        context_evidence,
+        ["evidence_id"],
+        f"Synthetic V2 {context_type} evidence",
+    )
 
     selected_truth = ground_truth.loc[
         ground_truth["root_cause_id"].astype(str).eq(root_cause_id)
     ].copy()
     selected_truth = _sort_table(selected_truth, ["case_id", "lot_id"])
-
-    expected_truth_count = int(contract["expected_ground_truth_count"])
-    if len(selected_truth) != expected_truth_count:
+    expected_truth_count = contract.get("expected_ground_truth_count")
+    if (
+        expected_truth_count is not None
+        and len(selected_truth) != int(expected_truth_count)
+    ):
         _fail(
             "Unexpected RCA ground-truth count: "
             f"expected {expected_truth_count}, got {len(selected_truth)}."
         )
     if selected_truth["lot_id"].astype(str).duplicated().any():
-        _fail("RCA ground truth must contain one case per abrupt-shift lot.")
+        _fail(f"{scenario_id} ground truth must contain one case per lot.")
     if _true_mask(selected_truth["supports_abstention"]).any():
-        _fail("RCA_ABRUPT_MEAN_SHIFT ground truth must not support abstention.")
+        _fail(f"{scenario_id} ground truth must not support abstention.")
 
     selected_lot_ids = set(selected_truth["lot_id"].astype(str))
     selected_lots = lots.loc[
         lots["lot_id"].astype(str).isin(selected_lot_ids)
     ].copy()
     selected_lots = _sort_table(selected_lots, ["event_time", "lot_id"])
-
-    expected_lot_count = int(contract["expected_lot_count"])
-    if len(selected_lots) != expected_lot_count:
+    expected_lot_count = contract.get("expected_lot_count")
+    if expected_lot_count is not None and len(selected_lots) != int(
+        expected_lot_count
+    ):
         _fail(
             "Unexpected RCA cohort lot count: "
             f"expected {expected_lot_count}, got {len(selected_lots)}."
@@ -310,9 +406,12 @@ def _validate_and_select_tables(
     if set(selected_lots["root_cause_id"].astype(str)) != {root_cause_id}:
         _fail("Selected RCA lots have an unexpected root-cause ID.")
     if set(selected_lots["anomaly_mechanism"].astype(str)) != {
-        "abrupt_mean_shift"
+        spec["anomaly_mechanism"]
     }:
-        _fail("Selected RCA lots must be abrupt_mean_shift anomalies only.")
+        _fail(
+            f"Selected RCA lots must be {spec['anomaly_mechanism']} "
+            "anomalies only."
+        )
     if not _true_mask(selected_lots["is_synthetic_anomaly"]).all():
         _fail("Selected RCA lots must all be synthetic anomalies.")
 
@@ -324,7 +423,6 @@ def _validate_and_select_tables(
     lot_evidence_ids = set(selected_lots["synthetic_evidence_id"].map(_as_text))
     if "" in lot_evidence_ids:
         _fail("Selected RCA lots must each cite a synthetic evidence ID.")
-
     for row in selected_lots.itertuples(index=False):
         lot_id = _as_text(row.lot_id)
         lot_evidence_id = _as_text(row.synthetic_evidence_id)
@@ -333,73 +431,116 @@ def _validate_and_select_tables(
                 f"RCA case for {lot_id} does not cite its synthetic lot evidence ID."
             )
 
-    selected_tool_events = tool_events.loc[
-        tool_events["evidence_id"].astype(str).isin(truth_evidence_ids)
+    selected_context_evidence = context_evidence.loc[
+        context_evidence["evidence_id"].astype(str).isin(truth_evidence_ids)
     ].copy()
-    selected_tool_events = _sort_table(
-        selected_tool_events,
-        ["event_time", "event_id", "evidence_id"],
+    selected_context_evidence = _sort_table(
+        selected_context_evidence,
+        ["performed_at", "event_time", "scheduled_at", "evidence_id"],
     )
-
-    expected_tool_event_count = int(contract["expected_tool_event_count"])
-    if len(selected_tool_events) != expected_tool_event_count:
+    expected_context_count = contract.get(spec["expected_count_key"])
+    if (
+        expected_context_count is not None
+        and len(selected_context_evidence) != int(expected_context_count)
+    ):
         _fail(
-            "Unexpected RCA tool-event evidence count: "
-            f"expected {expected_tool_event_count}, got {len(selected_tool_events)}."
+            f"Unexpected RCA {context_type} evidence count: expected "
+            f"{expected_context_count}, got {len(selected_context_evidence)}."
         )
-    required_event_evidence_id = _as_text(
-        contract["required_tool_event_evidence_id"]
+    required_context_evidence_id = contract.get(
+        spec["required_evidence_id_key"]
     )
-    if set(selected_tool_events["evidence_id"].astype(str)) != {
-        required_event_evidence_id
-    }:
-        _fail("RCA tool-event evidence does not match the manifest contract.")
+    if (
+        required_context_evidence_id is not None
+        and set(selected_context_evidence["evidence_id"].astype(str))
+        != {_as_text(required_context_evidence_id)}
+    ):
+        _fail(
+            f"RCA {context_type} evidence does not match the manifest contract."
+        )
 
     bundle_evidence_ids = lot_evidence_ids | set(
-        selected_tool_events["evidence_id"].astype(str)
+        selected_context_evidence["evidence_id"].astype(str)
     )
     if bundle_evidence_ids != truth_evidence_ids:
         _fail(
             "RCA evidence bundle would not cover every ground-truth evidence ID."
         )
-    expected_bundle_count = int(contract["expected_evidence_bundle_count"])
-    if len(bundle_evidence_ids) != expected_bundle_count:
+    expected_bundle_count = contract.get("expected_evidence_bundle_count")
+    if (
+        expected_bundle_count is not None
+        and len(bundle_evidence_ids) != int(expected_bundle_count)
+    ):
         _fail(
             "Unexpected RCA evidence-bundle count: "
             f"expected {expected_bundle_count}, got {len(bundle_evidence_ids)}."
         )
-    return selected_lots, selected_truth, selected_tool_events, bundle_evidence_ids
+    return (
+        selected_lots,
+        selected_truth,
+        selected_context_evidence,
+        bundle_evidence_ids,
+    )
+
+
+def _context_evidence_record(
+    row: pd.Series,
+    root_cause_id: str,
+    spec: dict[str, str],
+) -> dict[str, Any]:
+    context_type = spec["context_evidence_type"]
+    if context_type == "maintenance":
+        summary = (
+            "Synthetic delayed-maintenance evidence; "
+            f"type={_first_present(row, ['maintenance_type'])}; "
+            f"component={_first_present(row, ['component'])}; "
+            f"delay_days={_first_present(row, ['delay_days'])}; "
+            f"replacement_performed={_first_present(row, ['replacement_performed'])}."
+        )
+        source_record_id = _first_present(
+            row, ["maintenance_id", "evidence_id"]
+        )
+        event_time = _first_present(row, ["performed_at", "scheduled_at"])
+        lot_id = _first_present(row, ["related_lot_id", "lot_id"])
+    else:
+        event_type = _first_present(row, ["event_type", "event_name", "event_category"])
+        description = _first_present(row, ["description", "event_description", "message"])
+        summary = "; ".join(value for value in [event_type, description] if value)
+        source_record_id = _first_present(
+            row, ["event_id", "tool_event_id", "evidence_id"]
+        )
+        event_time = _first_present(row, ["event_time", "occurred_at"])
+        lot_id = _first_present(row, ["related_lot_id", "lot_id"])
+
+    return {
+        "_sort_order": 0,
+        "evidence_id": _as_text(row["evidence_id"]),
+        "evidence_type": context_type,
+        "source_table": spec["source_table"],
+        "source_record_id": source_record_id,
+        "lot_id": lot_id,
+        "event_time": event_time,
+        "tool_id": _first_present(row, ["tool_id"]),
+        "chamber_id": _first_present(row, ["chamber_id"]),
+        "root_cause_id": root_cause_id,
+        "is_shared_evidence": True,
+        "evidence_summary": summary or f"Synthetic {context_type} evidence.",
+        "evidence_payload": _json_payload(row, list(row.index)),
+    }
 
 
 def _build_evidence_bundle(
     lots: pd.DataFrame,
-    tool_events: pd.DataFrame,
+    context_evidence: pd.DataFrame,
     root_cause_id: str,
+    spec: dict[str, str],
 ) -> pd.DataFrame:
     records: list[dict[str, Any]] = []
-    for event in tool_events.itertuples(index=False):
-        row = pd.Series(event._asdict())
-        event_type = _first_present(row, ["event_type", "event_name", "event_category"])
-        description = _first_present(row, ["description", "event_description", "message"])
-        summary = "; ".join(value for value in [event_type, description] if value)
+    for context_row in context_evidence.itertuples(index=False):
         records.append(
-            {
-                "_sort_order": 0,
-                "evidence_id": _as_text(row["evidence_id"]),
-                "evidence_type": "tool_event",
-                "source_table": "synthetic_tool_events",
-                "source_record_id": _first_present(
-                    row, ["event_id", "tool_event_id", "evidence_id"]
-                ),
-                "lot_id": _first_present(row, ["related_lot_id", "lot_id"]),
-                "event_time": _first_present(row, ["event_time", "occurred_at"]),
-                "tool_id": _first_present(row, ["tool_id"]),
-                "chamber_id": _first_present(row, ["chamber_id"]),
-                "root_cause_id": root_cause_id,
-                "is_shared_evidence": True,
-                "evidence_summary": summary or "Synthetic tool-event evidence.",
-                "evidence_payload": _json_payload(row, list(row.index)),
-            }
+            _context_evidence_record(
+                pd.Series(context_row._asdict()), root_cause_id, spec
+            )
         )
 
     lot_payload_columns = [
@@ -412,11 +553,15 @@ def _build_evidence_bundle(
         "anomaly_mechanism",
         "root_cause_id",
         "injected_sensor_columns",
+        "degradation_progress",
+        "degradation_window_position",
+        "maximum_magnitude_sigma",
         "abrupt_shift_sigma",
         "synthetic_evidence_id",
     ]
     for lot in lots.itertuples(index=False):
         row = pd.Series(lot._asdict())
+        mechanism = _as_text(row["anomaly_mechanism"])
         records.append(
             {
                 "_sort_order": 1,
@@ -430,11 +575,7 @@ def _build_evidence_bundle(
                 "chamber_id": _as_text(row["chamber_id"]),
                 "root_cause_id": root_cause_id,
                 "is_shared_evidence": False,
-                "evidence_summary": (
-                    "Synthetic abrupt mean-shift lot evidence; "
-                    f"sensors={_first_present(row, ['injected_sensor_columns'])}; "
-                    f"sigma={_first_present(row, ['abrupt_shift_sigma'])}."
-                ),
+                "evidence_summary": f"Synthetic {mechanism} lot evidence.",
                 "evidence_payload": _json_payload(row, lot_payload_columns),
             }
         )
@@ -455,10 +596,11 @@ def materialize_rca_evaluation(
     scenario_id: str = DEFAULT_SCENARIO_ID,
     output_dir: Path | None = None,
 ) -> RcaEvaluationSummary:
-    """Materialize the supported root-cause evaluation cohort deterministically."""
-    if scenario_id != DEFAULT_SCENARIO_ID:
+    """Materialize a supported RCA evaluation cohort deterministically."""
+    if scenario_id not in SCENARIO_SPECS:
         _fail(
-            "This checkpoint supports only RCA_ABRUPT_MEAN_SHIFT; "
+            "This checkpoint supports only "
+            "RCA_ABRUPT_MEAN_SHIFT and RCA_GRADUAL_DEGRADATION; "
             f"received {scenario_id}."
         )
 
@@ -466,35 +608,37 @@ def materialize_rca_evaluation(
     manifest_path = repo_root / "configs" / "synthetic_data_v2_stress_test_manifest.json"
     manifest = _load_json(manifest_path)
     scenario = _scenario_from_manifest(manifest, scenario_id)
-    contract = _materialization_contract(scenario)
+    contract, spec = _materialization_contract(scenario_id, scenario)
 
     lots_path = _resolve_repo_path(repo_root, contract["source_lots_path"])
-    tool_events_path = _resolve_repo_path(
-        repo_root, contract["source_tool_events_path"]
+    context_evidence_path = _resolve_repo_path(
+        repo_root, contract[spec["source_path_key"]]
     )
     ground_truth_path = _resolve_repo_path(
         repo_root, contract["source_rca_ground_truth_path"]
     )
-    for path in [lots_path, tool_events_path, ground_truth_path]:
+    for path in [lots_path, context_evidence_path, ground_truth_path]:
         if not path.exists():
             _fail(f"Configured source file does not exist: {path}")
 
     lots = pd.read_csv(lots_path, keep_default_na=False)
-    tool_events = pd.read_csv(tool_events_path, keep_default_na=False)
+    context_evidence = pd.read_csv(context_evidence_path, keep_default_na=False)
     ground_truth = pd.read_csv(ground_truth_path, keep_default_na=False)
-    selected_lots, selected_truth, selected_tool_events, evidence_ids = (
+    selected_lots, selected_truth, selected_context_evidence, evidence_ids = (
         _validate_and_select_tables(
             lots,
-            tool_events,
+            context_evidence,
             ground_truth,
             scenario,
             contract,
+            spec,
         )
     )
     evidence_bundle = _build_evidence_bundle(
         selected_lots,
-        selected_tool_events,
+        selected_context_evidence,
         _as_text(scenario["root_cause_id"]),
+        spec,
     )
     if set(evidence_bundle["evidence_id"].astype(str)) != evidence_ids:
         _fail("Written RCA evidence bundle would not match the validated IDs.")
@@ -509,9 +653,13 @@ def materialize_rca_evaluation(
 
     _write_csv(selected_lots, output_dir / output_files["lots"])
     _write_csv(selected_truth, output_dir / output_files["ground_truth"])
-    _write_csv(selected_tool_events, output_dir / output_files["tool_events"])
+    _write_csv(
+        selected_context_evidence,
+        output_dir / output_files[spec["output_key"]],
+    )
     _write_csv(evidence_bundle, output_dir / output_files["evidence_bundle"])
 
+    context_type = spec["context_evidence_type"]
     generated_manifest = {
         "scenario": scenario,
         "cohort": {
@@ -524,10 +672,27 @@ def materialize_rca_evaluation(
             "expected_top_k": scenario["expected_top_k"],
             "expected_abstention": scenario["expected_abstention"],
         },
+        "context_evidence": {
+            "evidence_type": context_type,
+            "source_table": spec["source_table"],
+            "row_count": len(selected_context_evidence),
+            "required_evidence_id": contract.get(
+                spec["required_evidence_id_key"], ""
+            ),
+        },
         "evidence_bundle": {
             "evidence_id_count": len(evidence_ids),
-            "tool_event_count": len(selected_tool_events),
             "synthetic_lot_count": len(selected_lots),
+            "tool_event_count": (
+                len(selected_context_evidence)
+                if context_type == "tool_event"
+                else 0
+            ),
+            "maintenance_count": (
+                len(selected_context_evidence)
+                if context_type == "maintenance"
+                else 0
+            ),
             "required_evidence_types": scenario["required_evidence_types"],
         },
         "source_inputs": [
@@ -535,7 +700,7 @@ def materialize_rca_evaluation(
                 "path": path.relative_to(repo_root).as_posix(),
                 "sha256": _sha256(path),
             }
-            for path in [lots_path, tool_events_path, ground_truth_path]
+            for path in [lots_path, context_evidence_path, ground_truth_path]
         ],
         "disclaimer": contract["disclaimer"],
     }
@@ -550,7 +715,18 @@ def materialize_rca_evaluation(
         root_cause_id=_as_text(scenario["root_cause_id"]),
         cohort_lot_count=len(selected_lots),
         ground_truth_count=len(selected_truth),
-        tool_event_count=len(selected_tool_events),
+        tool_event_count=(
+            len(selected_context_evidence)
+            if context_type == "tool_event"
+            else 0
+        ),
+        maintenance_count=(
+            len(selected_context_evidence)
+            if context_type == "maintenance"
+            else 0
+        ),
+        context_evidence_type=context_type,
+        context_evidence_count=len(selected_context_evidence),
         evidence_bundle_count=len(evidence_bundle),
         output_dir=output_dir,
     )
@@ -563,19 +739,32 @@ def materialize_rca_abrupt_mean_shift(
     """Materialize the first manifest RCA evaluation scenario."""
     return materialize_rca_evaluation(
         repo_root=repo_root,
-        scenario_id=DEFAULT_SCENARIO_ID,
+        scenario_id="RCA_ABRUPT_MEAN_SHIFT",
+        output_dir=output_dir,
+    )
+
+
+def materialize_rca_gradual_degradation(
+    repo_root: Path,
+    output_dir: Path | None = None,
+) -> RcaEvaluationSummary:
+    """Materialize the gradual-degradation RCA evaluation cohort."""
+    return materialize_rca_evaluation(
+        repo_root=repo_root,
+        scenario_id="RCA_GRADUAL_DEGRADATION",
         output_dir=output_dir,
     )
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Materialize a Synthetic Data V2 RCA evaluation cohort."
+        description="Materialize a supported Synthetic Data V2 RCA evaluation cohort."
     )
     parser.add_argument(
         "--scenario-id",
         default=DEFAULT_SCENARIO_ID,
-        help="Only RCA_ABRUPT_MEAN_SHIFT is implemented in this checkpoint.",
+        choices=sorted(SCENARIO_SPECS),
+        help="RCA scenario to materialize in this checkpoint.",
     )
     parser.add_argument(
         "--output-dir",
@@ -601,7 +790,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Root cause: {summary.root_cause_id}")
     print(f"Cohort lots: {summary.cohort_lot_count}")
     print(f"RCA ground-truth cases: {summary.ground_truth_count}")
-    print(f"Tool-event evidence rows: {summary.tool_event_count}")
+    print(
+        f"{summary.context_evidence_type.replace('_', '-').title()} "
+        f"evidence rows: {summary.context_evidence_count}"
+    )
     print(f"Evidence-bundle rows: {summary.evidence_bundle_count}")
     print(f"Output directory: {summary.output_dir}")
     return 0
