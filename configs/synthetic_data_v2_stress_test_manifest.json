@@ -534,7 +534,25 @@
         1,
         3
       ],
-      "expected_abstention": false
+      "expected_abstention": false,
+      "materialization": {
+        "mode": "rca_evaluation_cohort",
+        "source_lots_path": "data/synthetic/v2/synthetic_secom_v2.csv",
+        "source_tool_events_path": "data/synthetic/v2/synthetic_tool_events.csv",
+        "source_rca_ground_truth_path": "data/synthetic/v2/synthetic_rca_ground_truth.csv",
+        "expected_lot_count": 47,
+        "expected_ground_truth_count": 47,
+        "expected_tool_event_count": 4,
+        "expected_evidence_bundle_count": 51,
+        "required_tool_event_evidence_ids": [
+          "EVID_SENSOR_EVENT_STUCK_AT_001",
+          "EVID_SENSOR_EVENT_DROPOUT_002",
+          "EVID_SENSOR_EVENT_MISSING_BURST_003",
+          "EVID_SENSOR_EVENT_CALIBRATION_BIAS_004"
+        ],
+        "preserve_core_v2_outputs": true,
+        "disclaimer": "Research-only RCA evaluation cohort derived from Synthetic Data V2. It contains synthetic sensor-fault anomalies and grounded sensor-fault alarm evidence only; it is not data from a real semiconductor fab."
+      }
     },
     {
       "id": "RCA_CONTEXTUAL_ANOMALY",

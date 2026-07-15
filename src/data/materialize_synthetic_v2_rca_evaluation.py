@@ -1,9 +1,9 @@
 """Materialize supported Synthetic Data V2 RCA evaluation cohorts.
 
-This module currently supports exactly the first three manifest RCA scenarios:
-``RCA_ABRUPT_MEAN_SHIFT``, ``RCA_GRADUAL_DEGRADATION``, and
-``RCA_VARIANCE_INSTABILITY``.  Each cohort is a deterministic,
-evidence-complete subset of the core Synthetic Data V2 outputs.
+This module currently supports exactly the first four manifest RCA scenarios:
+``RCA_ABRUPT_MEAN_SHIFT``, ``RCA_GRADUAL_DEGRADATION``,
+``RCA_VARIANCE_INSTABILITY``, and ``RCA_SENSOR_FAULT``.  Each cohort is a
+deterministic, evidence-complete subset of the core Synthetic Data V2 outputs.
 """
 
 from __future__ import annotations
@@ -52,6 +52,16 @@ SCENARIO_SPECS: dict[str, dict[str, str]] = {
         "source_table": "synthetic_tool_events",
         "output_key": "tool_events",
     },
+    "RCA_SENSOR_FAULT": {
+        "root_cause_id": "RC_SENSOR_HARDWARE",
+        "anomaly_mechanism": "sensor_fault",
+        "context_evidence_type": "tool_event",
+        "source_path_key": "source_tool_events_path",
+        "expected_count_key": "expected_tool_event_count",
+        "required_evidence_id_key": "required_tool_event_evidence_ids",
+        "source_table": "synthetic_tool_events",
+        "output_key": "tool_events",
+    },
 }
 
 SCENARIO_OUTPUT_FILES: dict[str, dict[str, str]] = {
@@ -76,6 +86,13 @@ SCENARIO_OUTPUT_FILES: dict[str, dict[str, str]] = {
         "evidence_bundle": "rca_variance_instability_evidence_bundle.csv",
         "manifest": "rca_variance_instability_cohort_manifest.json",
     },
+    "RCA_SENSOR_FAULT": {
+        "lots": "rca_sensor_fault_lots.csv",
+        "ground_truth": "rca_sensor_fault_ground_truth.csv",
+        "tool_events": "rca_sensor_fault_tool_events.csv",
+        "evidence_bundle": "rca_sensor_fault_evidence_bundle.csv",
+        "manifest": "rca_sensor_fault_cohort_manifest.json",
+    },
 }
 
 RCA_ABRUPT_MEAN_SHIFT_OUTPUT_FILES = SCENARIO_OUTPUT_FILES[
@@ -87,6 +104,7 @@ RCA_GRADUAL_DEGRADATION_OUTPUT_FILES = SCENARIO_OUTPUT_FILES[
 RCA_VARIANCE_INSTABILITY_OUTPUT_FILES = SCENARIO_OUTPUT_FILES[
     "RCA_VARIANCE_INSTABILITY"
 ]
+RCA_SENSOR_FAULT_OUTPUT_FILES = SCENARIO_OUTPUT_FILES["RCA_SENSOR_FAULT"]
 
 EVIDENCE_BUNDLE_COLUMNS = [
     "evidence_id",
@@ -324,6 +342,17 @@ def _materialization_contract(
         _fail("RCA materialization must include a research-only disclaimer.")
     return contract, spec
 
+def _contract_evidence_ids(value: Any) -> set[str]:
+    """Normalize a singular evidence ID or a manifest list of IDs."""
+    if isinstance(value, list):
+        evidence_ids = {_as_text(item).strip() for item in value}
+        if "" in evidence_ids or not evidence_ids:
+            _fail("Required evidence IDs must contain non-empty values.")
+        if len(evidence_ids) != len(value):
+            _fail("Required evidence IDs must not contain duplicates.")
+        return evidence_ids
+    return _split_evidence_ids(value)
+
 
 def _first_present(row: pd.Series, columns: list[str]) -> str:
     for column in columns:
@@ -457,7 +486,15 @@ def _validate_and_select_tables(
     ].copy()
     selected_context_evidence = _sort_table(
         selected_context_evidence,
-        ["performed_at", "event_time", "scheduled_at", "evidence_id"],
+        [
+            "performed_at",
+            "event_time",
+            "occurred_at",
+            "start_time",
+            "end_time",
+            "scheduled_at",
+            "evidence_id",
+        ],
     )
     expected_context_count = contract.get(spec["expected_count_key"])
     if (
@@ -468,13 +505,13 @@ def _validate_and_select_tables(
             f"Unexpected RCA {context_type} evidence count: expected "
             f"{expected_context_count}, got {len(selected_context_evidence)}."
         )
-    required_context_evidence_id = contract.get(
-        spec["required_evidence_id_key"]
+    required_context_evidence_ids = _contract_evidence_ids(
+        contract.get(spec["required_evidence_id_key"])
     )
     if (
-        required_context_evidence_id is not None
+        required_context_evidence_ids
         and set(selected_context_evidence["evidence_id"].astype(str))
-        != {_as_text(required_context_evidence_id)}
+        != required_context_evidence_ids
     ):
         _fail(
             f"RCA {context_type} evidence does not match the manifest contract."
@@ -684,6 +721,9 @@ def materialize_rca_evaluation(
     _write_csv(evidence_bundle, output_dir / output_files["evidence_bundle"])
 
     context_type = spec["context_evidence_type"]
+    required_context_evidence_ids = _contract_evidence_ids(
+        contract.get(spec["required_evidence_id_key"])
+    )
     generated_manifest = {
         "scenario": scenario,
         "cohort": {
@@ -700,9 +740,12 @@ def materialize_rca_evaluation(
             "evidence_type": context_type,
             "source_table": spec["source_table"],
             "row_count": len(selected_context_evidence),
-            "required_evidence_id": contract.get(
-                spec["required_evidence_id_key"], ""
+            "required_evidence_id": (
+                next(iter(required_context_evidence_ids))
+                if len(required_context_evidence_ids) == 1
+                else ""
             ),
+            "required_evidence_ids": sorted(required_context_evidence_ids),
         },
         "evidence_bundle": {
             "evidence_id_count": len(evidence_ids),
@@ -791,6 +834,16 @@ def materialize_rca_variance_instability(
         output_dir=output_dir,
     )
 
+def materialize_rca_sensor_fault(
+    repo_root: Path,
+    output_dir: Path | None = None,
+) -> RcaEvaluationSummary:
+    """Materialize the sensor-fault RCA evaluation cohort."""
+    return materialize_rca_evaluation(
+        repo_root=repo_root,
+        scenario_id="RCA_SENSOR_FAULT",
+        output_dir=output_dir,
+    )
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
