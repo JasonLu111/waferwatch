@@ -1,0 +1,2 @@
+event_id,tool_id,chamber_id,alarm_code,event_type,start_time,end_time,severity,related_lot_id,evidence_id
+EVT_ABRUPT_001,TOOL_02,TOOL_02_CH_02,ALARM_PRESSURE_SHIFT,tool_alarm,2026-01-01 04:00:00,2026-01-01 04:30:00,high,SYNV2_00001,EVID_ALARM_ABRUPT_001
